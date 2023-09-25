@@ -7,6 +7,9 @@ import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +45,18 @@ public class ChatController {
 
     public User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    @MessageMapping("/message")
+    @SendTo("/chatroom/public")
+    public String receiveMessage(@Payload String message){
+        return message;
+    }
+
+    @MessageMapping("/private-message")
+    public String recString(@Payload String message){
+//        simpMessagingTemplate.convertAndSendToUser(message.getReceiverName(),"/private",message);
+        System.out.println(message.toString());
+        return message;
     }
 }

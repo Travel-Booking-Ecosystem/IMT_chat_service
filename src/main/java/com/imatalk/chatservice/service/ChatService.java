@@ -12,6 +12,7 @@ import com.imatalk.chatservice.repository.DirectConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,9 @@ import static com.imatalk.chatservice.entity.DirectConversation.createDefaultSee
 @Service
 @RequiredArgsConstructor
 public class ChatService {
+
+    private final SimpMessagingTemplate messagingTemplate;
+
 
     // TODO: should it split the logic of direct conversation and group conversation into 2 services?
     private final UserService userService;
@@ -164,6 +168,10 @@ public class ChatService {
         Message message = createMessage(currentUser, request, now);
         message.setConversationId(directConversation.getId());
         message.setMessageNo(lastMessageNoInConversation + 1);
+
+        // send the message to the client using websocket
+        messagingTemplate.convertAndSend("/topic/chat", message);
+
         message = messageRepo.save(message);
 
         directConversation.addMessage(message);
