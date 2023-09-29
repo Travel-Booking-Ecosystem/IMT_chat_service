@@ -10,13 +10,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
+//@CrossOrigin(origins = "http://localhost:3000")
+//TODO: please add logging to all the methods (AOP)
 public class ChatController {
 
     private final ChatService chatService;
@@ -28,6 +29,7 @@ public class ChatController {
 
     @PostMapping("/send-direct-message")
     public ResponseEntity<CommonResponse> sendDirectMessage(@RequestBody SendMessageRequest request) {
+        System.out.println("Request: " + request.toString());
         return chatService.sendDirectMessage(getCurrentUser(), request);
     }
 
@@ -35,7 +37,7 @@ public class ChatController {
     public ResponseEntity<CommonResponse> getDirectConversationMessages(@RequestParam String conversationId,
                                                                         @RequestParam(defaultValue = "-1") int messageNo) {
         // if page is not specified, return the latest 100 messages
-        return chatService.getDirectConversationMessages(getCurrentUser(), conversationId, messageNo);
+        return chatService.getDirectConversationDetail(getCurrentUser(), conversationId, messageNo);
     }
 
     @GetMapping("/profile")
@@ -58,5 +60,11 @@ public class ChatController {
 //        simpMessagingTemplate.convertAndSendToUser(message.getReceiverName(),"/private",message);
         System.out.println(message.toString());
         return message;
+    }
+
+
+    @PostMapping("/test")
+    public ResponseEntity<CommonResponse> test(@RequestBody SendMessageRequest request) {
+        return chatService.test(getCurrentUser(), request);
     }
 }

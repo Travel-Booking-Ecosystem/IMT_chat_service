@@ -73,4 +73,8 @@ public class  DirectConversation {
     public long getLastMessageNo() {
         return lastMessageNo;
     }
+
+    public Long getLastSeenMessageNoOfMember(String memberId) {
+        return seenMessageTracker.getOrDefault(memberId, 0L);
+    }
 }

@@ -2,13 +2,11 @@ package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.response.*;
-import com.imatalk.chatservice.dto.response.DirectConversationMessagesDTO.MemberDTO;
-import com.imatalk.chatservice.dto.response.DirectConversationMessagesDTO.MemberDTO.LastSeen;
+import com.imatalk.chatservice.dto.response.DirectConversationDetailDTO.MemberDTO.LastSeen;
 import com.imatalk.chatservice.entity.DirectConversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.exception.ApplicationException;
-import com.imatalk.chatservice.repository.DirectConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,45 +18,31 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.imatalk.chatservice.dto.response.DirectConversationMessagesDTO.*;
-import static com.imatalk.chatservice.entity.DirectConversation.createDefaultSeenMessageTracker;
+import static com.imatalk.chatservice.dto.response.DirectConversationDetailDTO.*;
 
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
     private final SimpMessagingTemplate messagingTemplate;
-
-
-    // TODO: should it split the logic of direct conversation and group conversation into 2 services?
     private final UserService userService;
-    // TODO: directConversationService
-    private final DirectConversationRepo directConversationRepo;
-    // TODO: directMessageService
-    private final MessageRepo messageRepo;
-
-    private final int NUMBER_OF_CONVERSATION_PER_REQUEST = 10;
+    private final DirectConversationService directConversationService;
+    private final MessageService messageService;
+    private final String DIRECT_CONVERSATION_TOPIC = "/topic/chat";
+    private final int NUMBER_OF_CONVERSATION_PER_REQUEST = 10; //TODO: move this to application.properties
 
     public ResponseEntity<CommonResponse> createDirectConversation(User currentUser, String otherUserId) {
         User otherUser = userService.getUserById(otherUserId);
 
         // check if conversation already exists
-        boolean conversationExists = directConversationRepo.findByMembersIn(List.of(currentUser, otherUser)).isPresent();
+        boolean conversationExists = directConversationService.checkIfConversationExistsBetween2Users(currentUser, otherUser);
         if (conversationExists) {
-            throw new RuntimeException("Conversation already exists between 2 users");
+            throw new ApplicationException("Conversation already exists");
         }
-
 
         // create conversation
         List<User> members = List.of(currentUser, otherUser);
-        DirectConversation directConversation = DirectConversation.builder()
-                .createdAt(LocalDateTime.now())
-                .members(members)
-                .seenMessageTracker(createDefaultSeenMessageTracker(members))
-                .messages(new ArrayList<>())
-                .build();
-
-        directConversation = directConversationRepo.save(directConversation);
+        DirectConversation directConversation = directConversationService.createAndSaveConversationBetween2Users(currentUser, otherUser);
 
         // add conversation to each member's conversation list
         for (User member : members) {
@@ -67,11 +51,13 @@ public class ChatService {
         userService.saveAll(members);
 
         return ResponseEntity.ok(CommonResponse.success("Conversation created"));
+
+
     }
 
     public ResponseEntity<CommonResponse> getProfile(User user) {
         // get some recent conversations
-        List<DirectConversationInfoDTO> directConversationDTOs = getRecentDirectConversations(user);
+        List<DirectConversationInfoDTO> directConversationDTOs = getRecentDirectConversationInfo(user);
 
         // prepare the user profile
         UserProfile userProfile = new UserProfile(user);
@@ -83,22 +69,18 @@ public class ChatService {
         return ResponseEntity.ok(response);
     }
 
-    private List<DirectConversationInfoDTO> getRecentDirectConversations(User user) {
+    private List<DirectConversationInfoDTO> getRecentDirectConversationInfo(User user) {
         // only get some recent conversations, if the user has too little conversations, get all of them
         int recentConversationNumber = Math.min(NUMBER_OF_CONVERSATION_PER_REQUEST, user.getDirectConversationInfoList().size());
-        List<String> conversationIds = user.getDirectConversationInfoList().subList(0, recentConversationNumber);
-
-        // get all recent conversations from database
-        List<DirectConversation> directConversations =
-                directConversationRepo.findAllById(conversationIds);
+        List<DirectConversation> directConversations = directConversationService.getConversationListOfUser(user, recentConversationNumber);
 
         List<DirectConversationInfoDTO> directConversationDTOs =
-                convertToDirectConversationInfoTOs(directConversations, user);
+                convertToDirectConversationInfoDTOs(directConversations, user);
 
         return directConversationDTOs;
     }
 
-    private List<DirectConversationInfoDTO> convertToDirectConversationInfoTOs(List<DirectConversation> directConversations, User user) {
+    private List<DirectConversationInfoDTO> convertToDirectConversationInfoDTOs(List<DirectConversation> directConversations, User user) {
         // get all last sent message ids of those conversations
         List<String> lastSentMessageIds = directConversations.stream()
                 .map(DirectConversation::getLastMessageId)
@@ -107,8 +89,7 @@ public class ChatService {
 
         // get all last sent messages of those conversations from database
         // format to a map for faster lookup later
-        Map<String, Message> lastSentMessages = messageRepo
-                .findAllById(lastSentMessageIds)
+        Map<String, Message> lastSentMessages = messageService.findAllByIds(lastSentMessageIds)
                 .stream()
                 .collect(Collectors.toMap(Message::getId, Function.identity()));
 
@@ -117,40 +98,26 @@ public class ChatService {
 
         // convert each conversation to a DTO
         for (DirectConversation conversation : directConversations) {
-
-            User otherUser = getTheOtherUserInConversation(user, conversation);
-            Message lastMessage = lastSentMessages.get(conversation.getLastMessageId());
+            User otherUser = directConversationService.getTheOtherUserInConversation(user, conversation); // get the other user in the conversation to display
+            Message lastMessage = lastSentMessages.get(conversation.getLastMessageId()); // get the last sent message of the conversation to display
             DirectConversationInfoDTO directConversationDTO = new DirectConversationInfoDTO(conversation, otherUser, lastMessage);
-
             result.add(directConversationDTO);
         }
 
         return result;
     }
 
-    private static User getTheOtherUserInConversation(User user, DirectConversation conversation) {
-
-        // there can be only 2 members in a direct conversation
-        // find the other user in the conversation
-        User otherUser = conversation.getMembers().get(0);
-        // if the first member is the current user, then the other user is the second member
-        if (otherUser.getId().equals(user.getId())) {
-            otherUser = conversation.getMembers().get(1);
-        }
-        return otherUser;
-    }
-
 
     public ResponseEntity<CommonResponse> sendDirectMessage(User currentUser, SendMessageRequest request) {
-        DirectConversation directConversation = directConversationRepo.findById(request.getConversationId())
-                .orElseThrow(() -> new ApplicationException("Conversation not found for id " + request.getConversationId()));
+        DirectConversation directConversation = directConversationService.getConversationById(request.getConversationId());
 
         boolean userInConversation = checkUserInConversation(directConversation, currentUser);
         if (!userInConversation) {
             throw new ApplicationException("User is not in the conversation");
         }
-
+        // save the message to the database
         SendMessageResponse response = addMessageToConversation(currentUser, request, directConversation);
+
         if (response.isSuccess()) {
             return ResponseEntity.ok(CommonResponse.success("Message sent", response));
         } else {
@@ -160,22 +127,15 @@ public class ChatService {
 
 
     private SendMessageResponse addMessageToConversation(User currentUser, SendMessageRequest request, DirectConversation directConversation) {
-        LocalDateTime now = LocalDateTime.now();
-        //TODO: clean this code
 
+        Message message = messageService.createAndSaveMessage(currentUser, request, directConversation);
 
-        long lastMessageNoInConversation = directConversation.getLastMessageNo();
-        Message message = createMessage(currentUser, request, now);
-        message.setConversationId(directConversation.getId());
-        message.setMessageNo(lastMessageNoInConversation + 1);
+        //TODO: create MessageSender class to send message to the client
+        // send the message to the client using websocket after saving the message to the database
+        messagingTemplate.convertAndSend(DIRECT_CONVERSATION_TOPIC + "/" + request.getConversationId(), message);
 
-        // send the message to the client using websocket
-        messagingTemplate.convertAndSend("/topic/chat", message);
-
-        message = messageRepo.save(message);
-
-        directConversation.addMessage(message);
-        directConversationRepo.save(directConversation);
+        // update the conversation
+        directConversationService.addMessageAndSaveConversation(directConversation, message);
 
         // move the conversation to the top of the list
         List<User> members = directConversation.getMembers();
@@ -183,71 +143,60 @@ public class ChatService {
             member.moveConversationToTop(directConversation);
         }
         userService.saveAll(members);
-        return new SendMessageResponse(true, now);
+
+        return new SendMessageResponse(true, message.getCreatedAt());
     }
 
-    private Message createMessage(User currentUser, SendMessageRequest request, LocalDateTime now) {
-        return Message.builder()
-                .senderId(currentUser.getId())
-                .content(request.getContent())
-                .repliedMessageId(request.getRepliedMessageId())
-                .createdAt(now)
-                .build();
-    }
+
 
     private boolean checkUserInConversation(DirectConversation directConversation, User currentUser) {
         return directConversation.getMembers().stream()
                 .anyMatch(user -> user.getId().equals(currentUser.getId()));
     }
 
-    public ResponseEntity<CommonResponse> getDirectConversationMessages(User currentUser, String conversationId, long messageNo) {
+    public ResponseEntity<CommonResponse> getDirectConversationDetail(User currentUser, String conversationId, long messageNo) {
         //TODO: update the seen message number for the user when get messages in the conversation
-        DirectConversation directConversation = directConversationRepo.findById(conversationId)
-                .orElseThrow(() -> new ApplicationException("Conversation not found for id " + conversationId));
-
+        DirectConversation directConversation = directConversationService.getConversationById(conversationId);
         if (!checkUserInConversation(directConversation, currentUser)) {
             throw new ApplicationException("User is not in the conversation");
         }
 
-        //TODO: this logic should be done by the direct conversation service
-        List<Message> messages = get100Messages(directConversation, messageNo);
-        Map<String, Long> seenMessageTracker = directConversation.getSeenMessageTracker();
-        DirectConversationMessagesDTO dto = convertToDirectConversationMessagesDTO(directConversation, messages, seenMessageTracker, currentUser);
+        List<Message> messages = directConversationService.get100Messages(directConversation, messageNo);
+        DirectConversationDetailDTO dto = convertToDirectConversationDetailDTO(directConversation, messages, currentUser);
 
         return ResponseEntity.ok(CommonResponse.success("Messages retrieved", dto));
 
     }
 
-    private DirectConversationMessagesDTO convertToDirectConversationMessagesDTO(DirectConversation directConversation, List<Message> messages, Map<String, Long> seenMessageTracker, User currentUser) {
+    private DirectConversationDetailDTO convertToDirectConversationDetailDTO(DirectConversation directConversation, List<Message> messages, User currentUser) {
         String conversationId = directConversation.getId();
-        Map<String, MemberDTO> memberDTOs = convertMembersToDTO(directConversation, seenMessageTracker);
+        Map<String, MemberDTO> members = getMembersInConversation(directConversation);
         Map<String, DirectMessageDTO> messageDTOs = convertMessagesToDTO(messages, currentUser);
 
-        DirectConversationMessagesDTO dto = new DirectConversationMessagesDTO();
+        DirectConversationDetailDTO dto = new DirectConversationDetailDTO();
         dto.setConversationId(conversationId);
-        dto.setMembers(memberDTOs);
+        dto.setMembers(members);
         dto.setMessages(messageDTOs);
 
+        // set name and avatar of the conversation by getting from the other user
+        User otherUser = directConversationService.getTheOtherUserInConversation(currentUser, directConversation);
+        dto.setConversationName(otherUser.getDisplayName());
+        dto.setConversationAvatar(otherUser.getAvatar());
 
         return dto;
 
 
     }
-
-    private Map<String, MemberDTO> convertMembersToDTO(DirectConversation directConversation, Map<String, Long> seenMessageTracker) {
-        Map<String, MemberDTO> map = new HashMap<>();
-
-
+    private Map<String, MemberDTO> getMembersInConversation(DirectConversation directConversation) {
+        Map<String, MemberDTO> map  = new HashMap<>();
         for (User member : directConversation.getMembers()) {
-            MemberDTO memberDTO = new MemberDTO(member);
-
-            String memberId = member.getId();
-            // get the last message number that the user has seen in this conversation
-            long lastMessageNoSeenByUser = seenMessageTracker.getOrDefault(memberId, 0L);
-            memberDTO.setLastSeen(new LastSeen(lastMessageNoSeenByUser));
-
-            map.put(memberId, memberDTO);
+            MemberDTO otherUser = new MemberDTO(member);
+            LastSeen lastSeen = new LastSeen(directConversation.getLastSeenMessageNoOfMember(member.getId()));
+            otherUser.setLastSeen(lastSeen);
+            map.put(member.getId(), otherUser);
         }
+
+
         return map;
     }
 
@@ -260,24 +209,8 @@ public class ChatService {
         return map;
     }
 
-    private List<Message> get100Messages(DirectConversation directConversation, long messageNo) {
-        List<Message> messages = new ArrayList<Message>();
-        if (messageNo == -1) {
-            messages = getLast100MessagesOfAConversation(directConversation);
-        } else {
-            messages = getPrevious100MessagesByMessageNo(directConversation, messageNo);
-        }
-        return messages;
-    }
 
-    private List<Message> getPrevious100MessagesByMessageNo(DirectConversation directConversation, long messageNo) {
-        // get the last 100 messages from the messageNo specified in the conversation
-        return messageRepo.findAllByConversationIdAndMessageNoGreaterThanEqualOrderByCreatedAt(directConversation.getId(), messageNo - 100);
-    }
-
-    private List<Message> getLast100MessagesOfAConversation(DirectConversation directConversation) {
-        // get the last 100 messages of the conversation
-        long lastMessageNo = directConversation.getLastMessageNo();
-        return messageRepo.findAllByConversationIdAndMessageNoGreaterThanEqualOrderByCreatedAt(directConversation.getId(), lastMessageNo - 100);
+    public ResponseEntity<CommonResponse> test(User currentUser, SendMessageRequest request) {
+        return sendDirectMessage(currentUser, request);
     }
 }
