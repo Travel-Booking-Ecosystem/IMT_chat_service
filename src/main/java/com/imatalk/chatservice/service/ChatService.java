@@ -5,15 +5,14 @@ import com.imatalk.chatservice.dto.response.*;
 import com.imatalk.chatservice.dto.response.DirectConversationDetailDTO.MemberDTO.LastSeen;
 import com.imatalk.chatservice.entity.DirectConversation;
 import com.imatalk.chatservice.entity.Message;
+import com.imatalk.chatservice.entity.Notification;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.exception.ApplicationException;
-import com.imatalk.chatservice.repository.MessageRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,8 +28,10 @@ public class ChatService {
     private final DirectConversationService directConversationService;
     private final MessageService messageService;
     private final String DIRECT_CONVERSATION_TOPIC = "/topic/chat";
+    private final String NOTIFICATION_TOPIC = "/topic/notification";
     private final int NUMBER_OF_CONVERSATION_PER_REQUEST = 10; //TODO: move this to application.properties
 
+    // TODO: move all the logic of direct conversation to DirectConversationService
     public ResponseEntity<CommonResponse> createDirectConversation(User currentUser, String otherUserId) {
         User otherUser = userService.getUserById(otherUserId);
 
@@ -101,10 +102,25 @@ public class ChatService {
             User otherUser = directConversationService.getTheOtherUserInConversation(user, conversation); // get the other user in the conversation to display
             Message lastMessage = lastSentMessages.get(conversation.getLastMessageId()); // get the last sent message of the conversation to display
             DirectConversationInfoDTO directConversationDTO = new DirectConversationInfoDTO(conversation, otherUser, lastMessage);
+            // check if the current user has seen all messages in the conversation
+            boolean currentUserSeenAllMessages = conversation.getLastSeenMessageNoOfMember(user.getId()) == conversation.getLastMessageNo();
+            directConversationDTO.setUnread(!currentUserSeenAllMessages);
             result.add(directConversationDTO);
         }
 
         return result;
+    }
+
+    private static void moveConversationWitHIdToTopOfList(List<DirectConversationInfoDTO> list, String conversationId) {
+        DirectConversationInfoDTO conversation = list.stream()
+                .filter(dto -> dto.getId().equals(conversationId))
+                .findFirst()
+                .orElse(null);
+
+        if (conversation != null) {
+            list.removeIf(dto -> dto.getId().equals(conversationId));
+            list.add(0, conversation);
+        }
     }
 
 
@@ -134,19 +150,33 @@ public class ChatService {
         // send the message to the client using websocket after saving the message to the database
         messagingTemplate.convertAndSend(DIRECT_CONVERSATION_TOPIC + "/" + request.getConversationId(), message);
 
+        //TODO: please create another service using Kafka to deal with notification
+        // send notification to the other user in the conversation
+        // extract new method for this
+        for (User member : directConversation.getMembers()) {
+//            if (!member.getId().equals(currentUser.getId())) {
+            Notification notification = new Notification();
+            notification.setUserId(member.getId());
+            notification.setType(Notification.NotificationType.D_M);
+            notification.setContent(message.getContent());
+            notification.setCreatedAt(message.getCreatedAt());
+            notification.setConversationId(directConversation.getId());
+            notification.setSenderId(currentUser.getId());
+
+            messagingTemplate.convertAndSend(NOTIFICATION_TOPIC + "/" + member.getId(), notification);
+//            }
+        }
+
         // update the conversation
         directConversationService.addMessageAndSaveConversation(directConversation, message);
 
-        // move the conversation to the top of the list
-        List<User> members = directConversation.getMembers();
-        for (User member : members) {
-            member.moveConversationToTop(directConversation);
-        }
-        userService.saveAll(members);
+        // when user sends a message, set the current conversation to be the conversation that the user is sending message to
+        currentUser.setCurrentConversationId(directConversation.getId());
+
+        userService.save(currentUser);
 
         return new SendMessageResponse(true, message.getCreatedAt());
     }
-
 
 
     private boolean checkUserInConversation(DirectConversation directConversation, User currentUser) {
@@ -164,6 +194,14 @@ public class ChatService {
         List<Message> messages = directConversationService.get100Messages(directConversation, messageNo);
         DirectConversationDetailDTO dto = convertToDirectConversationDetailDTO(directConversation, messages, currentUser);
 
+        // set the conversation to be the current conversation of the user
+        currentUser.setCurrentConversationId(conversationId);
+        userService.save(currentUser);
+
+        // when user gets messages, set the seen message number of the user to be the last message number of the conversation
+        //TODO: use kafka to send notification to the other user when this seen the message
+        directConversation.updateUserSeenLatestMessage(currentUser); // update the seen message number of the user
+        directConversationService.save(directConversation);
         return ResponseEntity.ok(CommonResponse.success("Messages retrieved", dto));
 
     }
@@ -187,8 +225,9 @@ public class ChatService {
 
 
     }
+
     private Map<String, MemberDTO> getMembersInConversation(DirectConversation directConversation) {
-        Map<String, MemberDTO> map  = new HashMap<>();
+        Map<String, MemberDTO> map = new HashMap<>();
         for (User member : directConversation.getMembers()) {
             MemberDTO otherUser = new MemberDTO(member);
             LastSeen lastSeen = new LastSeen(directConversation.getLastSeenMessageNoOfMember(member.getId()));

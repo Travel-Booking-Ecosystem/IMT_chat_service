@@ -31,6 +31,7 @@ public class User implements UserDetails {
     private String password;
     private String avatar;
     private LocalDateTime joinAt;
+    private String currentConversationId; // the id of the conversation that the user is currently in
     private List<String> directConversationInfoList;
     private List<String> groupConversationInfoList;
 

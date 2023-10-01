@@ -16,7 +16,7 @@ public class DirectConversationInfoDTO {
     private String avatar;
     private LastMessageDTO lastMessage;
     private LocalDateTime lastUpdate; // this is the time of the last message or if there is no message, the time of the conversation creation
-
+    private boolean unread;
 
     @Data
     public static class LastMessageDTO {

@@ -13,4 +13,6 @@ import java.util.Optional;
 public interface DirectConversationRepo extends MongoRepository<DirectConversation, String> {
     Optional<DirectConversation> findByMembersIn(List<User> currentUser);
 
+    List<DirectConversation> findAllByIdInOrderByLastUpdatedAtDesc(List<String> conversationIds);
+
 }

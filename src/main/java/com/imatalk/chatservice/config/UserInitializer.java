@@ -316,9 +316,8 @@ public class UserInitializer implements CommandLineRunner {
         directConversationRepo.save(directConversation);
 
         // move the conversation to the top of the list
-        for (User member : members) {
-            member.moveConversationToTop(directConversation);
-        }
+        user1.setCurrentConversationId(directConversation.getId());
+        user2.setCurrentConversationId(directConversation.getId());
         userRepo.saveAll(members);
     }
 

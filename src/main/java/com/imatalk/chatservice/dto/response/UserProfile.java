@@ -15,6 +15,7 @@ public class UserProfile {
     private String email;
     private String avatar;
     private LocalDateTime joinAt;
+    private String currentConversationId; // the id of the conversation that the user is currently in
     private List<DirectConversationInfoDTO> directConversationList;
     private List<DirectConversationInfoDTO> groupConversationList;
 
@@ -25,6 +26,21 @@ public class UserProfile {
         this.email = user.getEmail();
         this.avatar = user.getAvatar();
         this.joinAt = user.getJoinAt();
+        this.currentConversationId = user.getCurrentConversationId();
+    }
+
+    public List<DirectConversationInfoDTO> getDirectConversationList() {
+        if (directConversationList == null) {
+            directConversationList = List.of();
+        }
+        return directConversationList;
+    }
+
+    public List<DirectConversationInfoDTO> getGroupConversationList() {
+        if (groupConversationList == null) {
+            groupConversationList = List.of();
+        }
+        return groupConversationList;
     }
 
 }

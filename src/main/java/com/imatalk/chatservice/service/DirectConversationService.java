@@ -10,6 +10,7 @@ import com.imatalk.chatservice.repository.MessageRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class DirectConversationService {
         DirectConversation conversation = DirectConversation.builder()
                 .members(List.of(user1, user2))
                 .lastMessageNo(0L)
-                .lastMessageCreatedAt(null)
+                .lastUpdatedAt(LocalDateTime.now())
                 .lastMessageId(null)
                 .seenMessageTracker(DirectConversation.createDefaultSeenMessageTracker(List.of(user1, user2)))
                 .build();
@@ -43,7 +44,7 @@ public class DirectConversationService {
         List<String> conversationIds = user.getDirectConversationInfoList().subList(0, numberOfConversations);
 
         // get a number of conversations from database
-        List<DirectConversation> directConversations = directConversationRepo.findAllById(conversationIds);
+        List<DirectConversation> directConversations = directConversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);
 
         return directConversations;
     }
@@ -91,5 +92,9 @@ public class DirectConversationService {
         // get the last 100 messages of the conversation
         long lastMessageNo = directConversation.getLastMessageNo();
         return messageRepo.findAllByConversationIdAndMessageNoGreaterThanEqualOrderByCreatedAt(directConversation.getId(), lastMessageNo - 100);
+    }
+
+    public void save(DirectConversation directConversation) {
+        directConversationRepo.save(directConversation);
     }
 }

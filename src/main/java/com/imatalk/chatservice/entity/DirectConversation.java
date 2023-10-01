@@ -23,7 +23,7 @@ public class  DirectConversation {
     private List<User> members;
     private long lastMessageNo;
     private String lastMessageId;
-    private LocalDateTime lastMessageCreatedAt;
+    private LocalDateTime lastUpdatedAt;
     // q: what does it mean by "lazy" for @DBRef
     @DBRef
     private List<Message> messages;
@@ -67,7 +67,7 @@ public class  DirectConversation {
         }
         lastMessageNo = newMessageNo;
         lastMessageId = message.getId();
-        lastMessageCreatedAt = message.getCreatedAt();
+        lastUpdatedAt = message.getCreatedAt();
     }
 
     public long getLastMessageNo() {
@@ -76,5 +76,9 @@ public class  DirectConversation {
 
     public Long getLastSeenMessageNoOfMember(String memberId) {
         return seenMessageTracker.getOrDefault(memberId, 0L);
+    }
+
+    public void updateUserSeenLatestMessage(User currentUser) {
+        seenMessageTracker.put(currentUser.getId(), lastMessageNo);
     }
 }
