@@ -1,9 +1,6 @@
 package com.imatalk.chatservice.entity;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,11 +29,13 @@ public class User implements UserDetails {
     private String avatar;
     private LocalDateTime joinAt;
     private String currentConversationId; // the id of the conversation that the user is currently in
+    //TODO: please change this to conversation, there is only one conversation field for both direct and group conversation
     private List<String> directConversationInfoList;
+    //TODO: create a list of new friend request for this user (one more field or for the DTO only)
     private List<String> groupConversationInfoList;
+    //TODO: List<User> friends
 
-
-    public void joinConversation(DirectConversation directConversation) {
+    public void joinConversation(Conversation directConversation) {
         directConversationInfoList.add(directConversation.getId());
     }
 
@@ -85,7 +84,7 @@ public class User implements UserDetails {
         return true;
     }
 
-    public void moveConversationToTop(DirectConversation directConversation) {
+    public void moveConversationToTop(Conversation directConversation) {
         directConversationInfoList.remove(directConversation.getId());
         directConversationInfoList.add(0, directConversation.getId());
     }

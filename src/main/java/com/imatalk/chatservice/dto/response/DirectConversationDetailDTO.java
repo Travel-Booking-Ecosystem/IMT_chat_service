@@ -1,11 +1,14 @@
 package com.imatalk.chatservice.dto.response;
 
+import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 // this object contains the list of members and the list of messages of the conversation
@@ -19,6 +22,33 @@ public class DirectConversationDetailDTO {
     private Map<String, DirectMessageDTO> messages;
 
 
+    public DirectConversationDetailDTO(Conversation conversation, User currentUser) {
+        this.conversationId = conversation.getId();
+
+        if (conversation.isGroupConversation()) {
+            this.conversationName = conversation.getGroupName();
+            this.conversationAvatar = conversation.getGroupAvatar();
+        } else {
+            User otherUser =  getTheOtherUserInConversation(currentUser, conversation);
+            // if the conversation is not a group conversation, then it is a direct conversation, and there are only 2 members in the conversation
+            this.conversationName = otherUser.getDisplayName();
+            this.conversationAvatar = otherUser.getAvatar();
+        }
+    }
+
+
+
+    public  User getTheOtherUserInConversation(User user, Conversation conversation) {
+
+        // there can be only 2 members in a direct conversation
+        // find the other user in the conversation
+        User otherUser = conversation.getMembers().get(0);
+        // if the first member is the current user, then the other user is the second member
+        if (otherUser.getId().equals(user.getId())) {
+            otherUser = conversation.getMembers().get(1);
+        }
+        return otherUser;
+    }
 
     @Data
     @AllArgsConstructor
@@ -45,6 +75,8 @@ public class DirectConversationDetailDTO {
 //            private String messageId;
             private long messageNo;
         }
+
+
     }
 
     @Data

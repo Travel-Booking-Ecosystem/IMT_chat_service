@@ -27,6 +27,7 @@ public class Message {
     private LocalDateTime createdAt;
     private String repliedMessageId; // this is null if the message is not a reply to another message
 
+    //TODO: should there be a system message when a user joins a conversation, leaves a conversation, or is added to a conversation, reacts to a message, etc.?
     public boolean isSent() {
         return id != null; // if the message has an id, it means it is stored in the database
     }

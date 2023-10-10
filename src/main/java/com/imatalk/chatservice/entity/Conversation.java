@@ -10,25 +10,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Document(collection = "direct_conversations")
+@Document(collection = "conversations")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
 @ToString(exclude = {"messages"}) // to prevent the call to getMessages() method when toString() is called
-public class  DirectConversation {
+public class Conversation {
     private String id;
     private LocalDateTime createdAt;
     @DBRef
     private List<User> members;
-    private long lastMessageNo;
-    private String lastMessageId;
-    private LocalDateTime lastUpdatedAt;
+
+    private Message lastMessage; // this is the last message of the conversation used to display in the conversation list
+    private LocalDateTime lastUpdatedAt; // this field is used to sort the conversation list when user opens the app
     // q: what does it mean by "lazy" for @DBRef
     @DBRef
     private List<Message> messages;
     private Map<String, Long> seenMessageTracker; // track each user's last seen message number in this conversation
 
+    private boolean isGroupConversation;
+    private String groupName;
+    private String groupAvatar;
 
     // make this method private to prevent it from being exposed to the outside
     // when this method is called, the messages field will be populated by retrieving messages from the database
@@ -54,6 +57,8 @@ public class  DirectConversation {
 
     public void addMessage(Message message) {
         // set messageNo to be the next number in the sequence
+
+        long lastMessageNo = lastMessage != null ? lastMessage.getMessageNo() : 0L;
         long newMessageNo = lastMessageNo + 1;
         messages.add(message);
 
@@ -65,20 +70,22 @@ public class  DirectConversation {
             seenMessageTracker.put(member.getId(), seenMessageNo);
 
         }
-        lastMessageNo = newMessageNo;
-        lastMessageId = message.getId();
+
+        this.lastMessage = message;
         lastUpdatedAt = message.getCreatedAt();
     }
 
-    public long getLastMessageNo() {
-        return lastMessageNo;
-    }
 
     public Long getLastSeenMessageNoOfMember(String memberId) {
         return seenMessageTracker.getOrDefault(memberId, 0L);
     }
 
     public void updateUserSeenLatestMessage(User currentUser) {
+        long lastMessageNo = lastMessage != null ? lastMessage.getMessageNo() : 0L;
         seenMessageTracker.put(currentUser.getId(), lastMessageNo);
+    }
+
+    public long getLastMessageNo() {
+        return lastMessage != null ? lastMessage.getMessageNo() : 0L;
     }
 }

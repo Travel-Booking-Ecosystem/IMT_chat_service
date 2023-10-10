@@ -1,14 +1,13 @@
 package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
-import com.imatalk.chatservice.entity.DirectConversation;
+import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.repository.MessageRepo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,14 +16,15 @@ import java.util.List;
 public class MessageService {
     private final MessageRepo messageRepo;
 
-
-    public Message createAndSaveMessage(User user, SendMessageRequest request, DirectConversation directConversation) {
+    //TOOD: rename all "directConversation" to "conversation"
+    public Message createAndSaveMessage(User user, SendMessageRequest request, Conversation conversation) {
         // save the message to the database
         Message message = createMessage(user, request);
 
         // set the message to belong to the conversation
-        message.setConversationId(directConversation.getId());
-        message.setMessageNo(directConversation.getLastMessageNo() + 1);
+        message.setConversationId(conversation.getId());
+        long newMessageNo = conversation.getLastMessageNo() + 1;
+        message.setMessageNo(newMessageNo);
         return messageRepo.save(message);
     }
 

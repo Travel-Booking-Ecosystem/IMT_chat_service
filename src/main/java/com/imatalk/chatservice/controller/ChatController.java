@@ -1,6 +1,7 @@
 package com.imatalk.chatservice.controller;
 
 
+import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.response.CommonResponse;
 import com.imatalk.chatservice.entity.User;
@@ -22,17 +23,26 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    //TODO: change to add friend / accept friend request
+
     @PostMapping("/create-direct-conversation")
     public ResponseEntity<CommonResponse> createDirectConversation(@RequestParam String otherUserId) {
         return chatService.createDirectConversation(getCurrentUser(), otherUserId);
     }
 
+    @PostMapping("/create-group-conversation")
+    public ResponseEntity<CommonResponse> createGroupConversation(@RequestBody CreateGroupConversationRequest request) {
+        return chatService.createGroupConversation(getCurrentUser(), request);
+    }
+
+    // TODO: change to get send direct message
     @PostMapping("/send-direct-message")
     public ResponseEntity<CommonResponse> sendDirectMessage(@RequestBody SendMessageRequest request) {
         System.out.println("Request: " + request.toString());
         return chatService.sendDirectMessage(getCurrentUser(), request);
     }
 
+    //TODO: change to get conversation messages
     @GetMapping("/get-direct-conversation-messages")
     public ResponseEntity<CommonResponse> getDirectConversationMessages(@RequestParam String conversationId,
                                                                         @RequestParam(defaultValue = "-1") int messageNo) {

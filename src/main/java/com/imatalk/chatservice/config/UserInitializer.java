@@ -1,14 +1,11 @@
 package com.imatalk.chatservice.config;
 
-import com.imatalk.chatservice.dto.request.SendMessageRequest;
-import com.imatalk.chatservice.entity.DirectConversation;
+import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.repository.DirectConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import com.imatalk.chatservice.repository.UserRepo;
-import com.imatalk.chatservice.service.ChatService;
-import com.imatalk.chatservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.imatalk.chatservice.entity.DirectConversation.createDefaultSeenMessageTracker;
+import static com.imatalk.chatservice.entity.Conversation.createDefaultSeenMessageTracker;
 
 @Component
 @RequiredArgsConstructor
@@ -284,7 +281,7 @@ public class UserInitializer implements CommandLineRunner {
     public void createDirectConversationBetween2Users(User user1, User user2, List<String> strings) {
         // create a conversation
         List<User> members = List.of(user1, user2);
-        DirectConversation directConversation = DirectConversation.builder()
+        Conversation directConversation = Conversation.builder()
                 .createdAt(LocalDateTime.now())
                 .members(members)
                 .seenMessageTracker(createDefaultSeenMessageTracker(members))
