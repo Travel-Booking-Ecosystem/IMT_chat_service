@@ -1,5 +1,6 @@
 package com.imatalk.chatservice.filter;
 
+import com.imatalk.chatservice.dto.response.CommonResponse;
 import com.imatalk.chatservice.service.JwtService;
 import com.imatalk.chatservice.service.UserService;
 import jakarta.servlet.FilterChain;

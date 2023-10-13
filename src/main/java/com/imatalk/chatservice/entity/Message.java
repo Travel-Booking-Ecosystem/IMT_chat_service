@@ -31,5 +31,4 @@ public class Message {
     public boolean isSent() {
         return id != null; // if the message has an id, it means it is stored in the database
     }
-
 }

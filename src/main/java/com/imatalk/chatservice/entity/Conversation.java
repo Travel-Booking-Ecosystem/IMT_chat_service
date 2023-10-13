@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,6 @@ public class Conversation {
 
     private Message lastMessage; // this is the last message of the conversation used to display in the conversation list
     private LocalDateTime lastUpdatedAt; // this field is used to sort the conversation list when user opens the app
-    // q: what does it mean by "lazy" for @DBRef
     @DBRef
     private List<Message> messages;
     private Map<String, Long> seenMessageTracker; // track each user's last seen message number in this conversation
@@ -57,7 +57,6 @@ public class Conversation {
 
     public void addMessage(Message message) {
         // set messageNo to be the next number in the sequence
-
         long lastMessageNo = lastMessage != null ? lastMessage.getMessageNo() : 0L;
         long newMessageNo = lastMessageNo + 1;
         messages.add(message);
@@ -66,7 +65,7 @@ public class Conversation {
         for (User member : members) {
             // if the user is the sender of the message, set the seen message number to be the message number of the message
             // otherwise, set the seen message number to be the last seen message number of the user
-            long seenMessageNo = member.getId().equals(message.getSenderId()) ? newMessageNo : seenMessageTracker.get(member.getId());
+            long seenMessageNo = member.getId().equals(message.getSenderId()) ? newMessageNo : seenMessageTracker.getOrDefault(member.getId(), 0L);
             seenMessageTracker.put(member.getId(), seenMessageNo);
 
         }

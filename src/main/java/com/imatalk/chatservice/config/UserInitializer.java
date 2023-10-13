@@ -3,7 +3,7 @@ package com.imatalk.chatservice.config;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
-import com.imatalk.chatservice.repository.DirectConversationRepo;
+import com.imatalk.chatservice.repository.ConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import com.imatalk.chatservice.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import static com.imatalk.chatservice.entity.Conversation.createDefaultSeenMessa
 public class UserInitializer implements CommandLineRunner {
 
     private final UserRepo userRepo;
-    private final DirectConversationRepo directConversationRepo;
+    private final ConversationRepo directConversationRepo;
     private final MessageRepo messageRepo;
     private final PasswordEncoder passwordEncoder;
 

@@ -5,7 +5,7 @@ import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.exception.ApplicationException;
-import com.imatalk.chatservice.repository.DirectConversationRepo;
+import com.imatalk.chatservice.repository.ConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import com.imatalk.chatservice.utils.Utils;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +19,14 @@ import java.util.List;
 @RequiredArgsConstructor
 //TODO: you will need to rename this class to ConversationService, since there is only one service for both direct and group conversation
 //TODO: change the repositiory as well
-public class DirectConversationService {
+public class ConversationService {
 
-    private final DirectConversationRepo directConversationRepo;
+    private final ConversationRepo conversationRepo;
     private final MessageRepo messageRepo;
 
 
     public boolean checkIfConversationExistsBetween2Users(User user1, User user2) {
-        return directConversationRepo.findByMembersIn(List.of(user1, user2)).isPresent();
+        return conversationRepo.findByMembersIn(List.of(user1, user2)).isPresent();
     }
 
     public Conversation createAndSaveConversationBetween2Users(User user1, User user2) {
@@ -36,7 +36,7 @@ public class DirectConversationService {
                 .seenMessageTracker(Conversation.createDefaultSeenMessageTracker(List.of(user1, user2)))
                 .build();
 
-        return directConversationRepo.save(conversation);
+        return conversationRepo.save(conversation);
     }
 
     public List<Conversation> getConversationListOfUser(User user, int numberOfConversations) {
@@ -45,31 +45,20 @@ public class DirectConversationService {
         List<String> conversationIds = user.getDirectConversationInfoList().subList(0, numberOfConversations);
 
         // get a number of conversations from database
-        List<Conversation> directConversations = directConversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);
+        List<Conversation> directConversations = conversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);
 
         return directConversations;
     }
 
-    public  User getTheOtherUserInConversation(User user, Conversation conversation) {
-
-        // there can be only 2 members in a direct conversation
-        // find the other user in the conversation
-        User otherUser = conversation.getMembers().get(0);
-        // if the first member is the current user, then the other user is the second member
-        if (otherUser.getId().equals(user.getId())) {
-            otherUser = conversation.getMembers().get(1);
-        }
-        return otherUser;
-    }
 
     public Conversation getConversationById(String conversationId) {
-        return directConversationRepo.findById(conversationId)
+        return conversationRepo.findById(conversationId)
                 .orElseThrow(() -> new ApplicationException("Conversation not found for id " + conversationId));
     }
 
     public void addMessageAndSaveConversation(Conversation directConversation, Message message) {
         directConversation.addMessage(message);
-        directConversationRepo.save(directConversation);
+        conversationRepo.save(directConversation);
 
     }
 
@@ -96,7 +85,7 @@ public class DirectConversationService {
     }
 
     public void save(Conversation directConversation) {
-        directConversationRepo.save(directConversation);
+        conversationRepo.save(directConversation);
     }
 
     public Conversation createAndSaveGroupConversation(String groupName, List<User> members) {
@@ -108,7 +97,7 @@ public class DirectConversationService {
         conversation.setGroupAvatar(Utils.generateAvatarUrl(groupName));
         conversation.setGroupConversation(true);
 
-        return directConversationRepo.save(conversation);
+        return conversationRepo.save(conversation);
 
     }
 
@@ -118,6 +107,7 @@ public class DirectConversationService {
                 .members(List.of())
                 .createdAt(LocalDateTime.now())
                 .lastUpdatedAt(LocalDateTime.now())
+                .messages(List.of())
                 .seenMessageTracker(Conversation.createDefaultSeenMessageTracker(List.of()))
                 .build();
         return conversation;

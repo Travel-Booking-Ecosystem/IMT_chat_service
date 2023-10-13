@@ -10,7 +10,7 @@ import java.util.Optional;
 
 
 @Repository
-public interface DirectConversationRepo extends MongoRepository<Conversation, String> {
+public interface ConversationRepo extends MongoRepository<Conversation, String> {
     Optional<Conversation> findByMembersIn(List<User> currentUser);
 
     List<Conversation> findAllByIdInOrderByLastUpdatedAtDesc(List<String> conversationIds);
