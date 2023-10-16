@@ -46,15 +46,12 @@ public class AuthService {
     private User createUserFromRequest(RegistrationRequest request) {
 
         String username = request.getUsername();
-        if (username == null) {
-            username = generateUniqueUsername(request);
-        }
 
         return User.builder()
                 .email(request.getEmail())
                 .displayName(request.getDisplayName())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .username(username)
+                .username("@" + username)
                 .avatar(generateAvatarUrl(request.getDisplayName()))
                 .groupConversationInfoList(new ArrayList<>())
                 .directConversationInfoList(new ArrayList<>())

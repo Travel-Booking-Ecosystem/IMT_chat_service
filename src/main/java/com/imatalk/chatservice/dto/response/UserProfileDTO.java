@@ -11,8 +11,6 @@ public class UserProfileDTO {
     private String id;
     private String username; // this is unique, like @john_due21
     private String displayName;
-    private String firstName;
-    private String lastName;
     private String email;
     private String avatar;
     private LocalDateTime joinAt;

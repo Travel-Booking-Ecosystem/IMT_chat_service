@@ -1,9 +1,7 @@
 package com.imatalk.chatservice.dto.request;
 
-import com.imatalk.chatservice.constants.ValidationRegex;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
-import lombok.NonNull;
 
 import static com.imatalk.chatservice.constants.ValidationRegex.*;
 
@@ -17,8 +15,8 @@ public class RegistrationRequest {
             message = EMAIL_INVALID_ERROR)
     private String email;
 
-    @Pattern(regexp = NAME_REGEX,
-            message = NAME_INVALID_ERROR)
+    @Pattern(regexp = DISPLAY_NAME_REGEX,
+            message = DISPLAY_NAME_INVALID_ERROR)
     private String displayName;
 
 
