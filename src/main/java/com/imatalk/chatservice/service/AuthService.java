@@ -8,10 +8,7 @@ import com.imatalk.chatservice.dto.response.LoginResponse;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.exception.ApplicationException;
 import com.imatalk.chatservice.repository.UserRepo;
-import com.imatalk.chatservice.utils.Utils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -53,8 +50,6 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .username("@" + username)
                 .avatar(generateAvatarUrl(request.getDisplayName()))
-                .groupConversationInfoList(new ArrayList<>())
-                .directConversationInfoList(new ArrayList<>())
                 .joinAt(LocalDateTime.now())
                 .build();
     }
@@ -79,9 +74,9 @@ public class AuthService {
     }
 
     private void validateUsernameThrowExceptionIfInvalid(String username) {
-        if (!username.matches(ValidationRegex.USERNAME_REGEX)) {
-            throw new ApplicationException(ValidationRegex.USERNAME_INVALID_ERROR);
-        }
+    //        if (!username.matches(ValidationRegex.USERNAME_REGEX)) {
+    //            throw new ApplicationException(ValidationRegex.USERNAME_INVALID_ERROR);
+    //        }
         String formatted = "@" + username.toLowerCase();
         boolean isUsernameExist = userRepo.existsByUsername(formatted);
 
@@ -103,7 +98,7 @@ public class AuthService {
 
     public ResponseEntity<CommonResponse> login(LoginRequest request) {
 
-        User user = userRepo.findByEmail(request.getEmail())
+        User user = userRepo.findByEmailIgnoreCase(request.getEmail())
                 .orElseThrow(() -> new  ApplicationException("Incorrect credentials"));
 
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {

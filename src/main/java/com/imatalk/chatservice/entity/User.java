@@ -5,11 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -29,33 +31,27 @@ public class User implements UserDetails {
     private String avatar;
     private LocalDateTime joinAt;
     private String currentConversationId; // the id of the conversation that the user is currently in
-    //TODO: please change this to conversation, there is only one conversation field for both direct and group conversation
-    private List<String> directConversationInfoList;
+    private List<String> conversations;
     //TODO: create a list of new friend request for this user (one more field or for the DTO only)
-    private List<String> groupConversationInfoList;
+    @DBRef
+    private List<FriendRequest> receivedFriendRequests;
+    @DBRef
+    private List<FriendRequest> sentFriendRequests;
+
     //TODO: List<User> friends
+    @DBRef
+    private List<User> friends;
 
     public void joinConversation(Conversation directConversation) {
-        directConversationInfoList.add(directConversation.getId());
+        conversations.add(directConversation.getId());
     }
 
-
-    public List<String> getDirectConversationInfoList() {
-        if (directConversationInfoList == null) {
-            directConversationInfoList = Collections.emptyList();
+    public List<String> getConversations() {
+        if (conversations == null) {
+            conversations = new ArrayList<>();
         }
-        return directConversationInfoList;
+        return conversations;
     }
-
-    public List<String> getGroupConversationInfoList() {
-        if (groupConversationInfoList == null) {
-            groupConversationInfoList = Collections.emptyList();
-        }
-        return groupConversationInfoList;
-    }
-
-
-
 
 
     @Override
@@ -85,7 +81,28 @@ public class User implements UserDetails {
     }
 
     public void moveConversationToTop(Conversation directConversation) {
-        directConversationInfoList.remove(directConversation.getId());
-        directConversationInfoList.add(0, directConversation.getId());
+        conversations.remove(directConversation.getId());
+        conversations.add(0, directConversation.getId());
+    }
+
+    public List<FriendRequest> getReceivedFriendRequests() {
+        if (receivedFriendRequests == null) {
+            receivedFriendRequests = new ArrayList<>();
+        }
+        return receivedFriendRequests;
+    }
+
+    public List<FriendRequest> getSentFriendRequests() {
+        if (sentFriendRequests == null) {
+            sentFriendRequests = new ArrayList<>();
+        }
+        return sentFriendRequests;
+    }
+
+    public List<User> getFriends() {
+        if (friends == null) {
+            friends = new ArrayList<>();
+        }
+        return friends;
     }
 }

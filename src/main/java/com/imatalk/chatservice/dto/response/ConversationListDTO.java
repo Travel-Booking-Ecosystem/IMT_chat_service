@@ -11,10 +11,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class SidebarDTO {
+public class ConversationListDTO {
+    private String currentConversationId; //TODO: remove this
     private List<ConversationInfoDTO> conversations;
-    //TODO: please create DTO for the following objects
-    private List<Object> friends;
-    private List<Object> friendRequests;
-    private List<Object> notifications;
+
+//    private List<Object> notifications; // TODO: // remove this
 }

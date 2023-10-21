@@ -39,9 +39,25 @@ public class Conversation {
     // the messages should only be fetched using its own repository
     @JsonIgnore
     private List<Message> getMessages() {
+        if (messages == null) {
+            messages = new ArrayList<>();
+        }
         return messages;
     }
 
+    public List<User> getMembers() {
+        if (members == null) {
+            members = new ArrayList<>();
+        }
+        return members;
+    }
+
+    public Map<String, Long> getSeenMessageTracker() {
+        if (seenMessageTracker == null) {
+            seenMessageTracker = new HashMap<>();
+        }
+        return seenMessageTracker;
+    }
 
     public static Map<String, Long> createDefaultSeenMessageTracker(List<User> users) {
         Map<String, Long> map = new HashMap<String, Long>();

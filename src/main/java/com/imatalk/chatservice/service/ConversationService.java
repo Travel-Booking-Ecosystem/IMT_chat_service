@@ -42,7 +42,7 @@ public class ConversationService {
     public List<Conversation> getConversationListOfUser(User user, int numberOfConversations) {
 
         // get the first n conversation ids from the user's conversation list
-        List<String> conversationIds = user.getDirectConversationInfoList().subList(0, numberOfConversations);
+        List<String> conversationIds = user.getConversations().subList(0, numberOfConversations);
 
         // get a number of conversations from database
         List<Conversation> directConversations = conversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);

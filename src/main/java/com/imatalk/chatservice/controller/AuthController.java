@@ -30,8 +30,6 @@ public class AuthController {
         return authService.login(request);
     }
 
-
-
     public User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

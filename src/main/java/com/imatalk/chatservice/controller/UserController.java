@@ -6,9 +6,7 @@ import com.imatalk.chatservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -23,13 +21,33 @@ public class UserController {
     }
 
 
-    @GetMapping("/sidebar")
+    // TODO: get conversation info list
+    @GetMapping("/conversation-list")
     public ResponseEntity<CommonResponse> getSidebar() {
-        return userService.getSidebar(getCurrentUser());
+        return userService.getConversationList(getCurrentUser());
+    }
+
+
+    @GetMapping("/friend-request")
+    public ResponseEntity<CommonResponse> getFriendRequest() {
+        return userService.getFriendRequest(getCurrentUser());
     }
 
     //TODO: change to add friend / accept friend request
+    @GetMapping("/friends")
+    public ResponseEntity<CommonResponse> getFriends() {
+        return userService.getFriends(getCurrentUser());
+    }
 
+    @PostMapping("/add-friend")
+    public ResponseEntity<CommonResponse> addFriend(@RequestParam String otherUserId) {
+        return userService.addFriend(getCurrentUser(), otherUserId);
+    }
+
+    @PostMapping("/accept-friend")
+    public ResponseEntity<CommonResponse> acceptFriend(@RequestParam String requestId) {
+        return userService.acceptFriend(getCurrentUser(), requestId);
+    }
 
     public User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

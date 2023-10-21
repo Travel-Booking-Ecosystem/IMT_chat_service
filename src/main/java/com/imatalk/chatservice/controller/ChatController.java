@@ -25,6 +25,7 @@ public class ChatController {
     private final ChatService chatService;
 
 
+    //TODO: you need to add an api to send message to user (when the conversation is not created yet)
     @PostMapping("/create-direct-conversation")
     public ResponseEntity<CommonResponse> createDirectConversation(@RequestParam String otherUserId) {
         return chatService.createDirectConversation(getCurrentUser(), otherUserId);
@@ -36,6 +37,7 @@ public class ChatController {
     }
 
     // TODO: change to get send direct message
+    //TODO: change to send message to conversation
     @PostMapping("/send-message")
     public ResponseEntity<CommonResponse> sendMessages(@RequestBody SendMessageRequest request) {
         return chatService.sendMessage(getCurrentUser(), request);

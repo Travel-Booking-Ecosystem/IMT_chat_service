@@ -1,15 +1,18 @@
 package com.imatalk.chatservice.config;
 
 import com.imatalk.chatservice.entity.Conversation;
+import com.imatalk.chatservice.entity.FriendRequest;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.repository.ConversationRepo;
+import com.imatalk.chatservice.repository.FriendRequestRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import com.imatalk.chatservice.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,8 +28,9 @@ public class UserInitializer implements CommandLineRunner {
     private final ConversationRepo directConversationRepo;
     private final MessageRepo messageRepo;
     private final PasswordEncoder passwordEncoder;
-
+    private final FriendRequestRepo friendRequestRepo;
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
 
         List<User> users = new ArrayList<User>();
@@ -211,54 +215,62 @@ public class UserInitializer implements CommandLineRunner {
                     "Definitely! Books have this magical way of transporting us to different worlds, whether they are real or imagined. It's one of the things I love most about reading."
             );
 
-            List<String> minamino_lam = List.of(
-                    "旅行は新しい文化を学ぶ絶好の機会です。どの国に行くつもりですか？",
-                    "日本の観光地は素晴らしいです。京都の寺院や東京の高層ビルなど、見どころがたくさんあります。",
-                    "日本の伝統的な食べ物は美味しいです。寿司やラーメンなど、現地の料理を楽しんでください。",
-                    "温泉は日本の文化の一部です。温泉地でのんびりとくつろぐのも良いですね。",
-                    "日本の交通システムは非常に効率的です。新幹線で移動すると、短時間で多くの場所に行けます。",
-                    "日本の祭りやイベントは非常にカラフルで楽しいです。桜の季節には花見がおすすめです。",
-                    "日本の歴史や文化に興味を持ってください。古代の寺院や城、伝統的な舞や音楽などが体験できます。",
-                    "親切な地元の人々と交流することで、旅行体験はより充実したものになります。",
-                    "旅行中には、現地の言葉や習慣を尊重することが大切です。地元の人々とのコミュニケーションを楽しんでください。",
-                    "旅行は人生の中で最も豊かな経験のひとつです。新しい場所や人々との出会いを大切にしてください。"
-            );
+//            List<String> minamino_lam = List.of(
+//                    "旅行は新しい文化を学ぶ絶好の機会です。どの国に行くつもりですか？",
+//                    "日本の観光地は素晴らしいです。京都の寺院や東京の高層ビルなど、見どころがたくさんあります。",
+//                    "日本の伝統的な食べ物は美味しいです。寿司やラーメンなど、現地の料理を楽しんでください。",
+//                    "温泉は日本の文化の一部です。温泉地でのんびりとくつろぐのも良いですね。",
+//                    "日本の交通システムは非常に効率的です。新幹線で移動すると、短時間で多くの場所に行けます。",
+//                    "日本の祭りやイベントは非常にカラフルで楽しいです。桜の季節には花見がおすすめです。",
+//                    "日本の歴史や文化に興味を持ってください。古代の寺院や城、伝統的な舞や音楽などが体験できます。",
+//                    "親切な地元の人々と交流することで、旅行体験はより充実したものになります。",
+//                    "旅行中には、現地の言葉や習慣を尊重することが大切です。地元の人々とのコミュニケーションを楽しんでください。",
+//                    "旅行は人生の中で最も豊かな経験のひとつです。新しい場所や人々との出会いを大切にしてください。"
+//            );
 
-            List<String> minamino_hai = List.of(
-                    "Các chiếc xe đua F1 ngày nay đều được thiết kế để đạt tốc độ cực cao trên đường đua.",
-                    "Mỗi chiếc xe F1 đều là kết quả của nhiều năm nghiên cứu và phát triển công nghệ.",
-                    "Hệ thống động cơ trên các chiếc xe F1 thực sự là một ki marvel kỹ thuật, đem lại công suất đáng kinh ngạc.",
-                    "Các đội đua F1 không chỉ cạnh tranh về tốc độ, mà còn về chiến lược và kỹ thuật lái xe.",
-                    "Ở tốc độ cao, các hệ thống an toàn trên xe đua F1 trở thành yếu tố quan trọng nhất để bảo vệ tay lái.",
-                    "Các tay đua F1 phải có kỹ năng tuyệt vời để điều khiển xe ở tốc độ cực nhanh và giữ cho nó ổn định trên đường đua.",
-                    "Cấu trúc nhẹ và sức mạnh động cơ của các chiếc F1 giúp chúng tăng tốc độ với tốc độ kinh ngạc.",
-                    "Đội kỹ thuật của mỗi đội đua F1 thường xuyên cải tiến và tối ưu hóa các thành phần của xe để đạt hiệu suất tốt nhất.",
-                    "Dù điều kiện thời tiết có thể thay đổi, các tay đua F1 vẫn phải thích ứng và lái xe ở tốc độ tối đa.",
-                    "Mỗi mùa giải F1 đều mang đến những trận đấu căng thẳng và hấp dẫn, là sự kết hợp của kỹ năng, chiến lược và may mắn.",
-                    "Đua xe F1 không chỉ là một môn thể thao, mà còn là một nghệ thuật kết hợp giữa tốc độ và chiến thuật.",
-                    "Mỗi đội đua F1 đều có các chiến lược đua riêng, bao gồm lịch trình dừng hạng, chiến thuật pit stop và quản lý lốp.",
-                    "Đua xe F1 đòi hỏi sự tập trung tuyệt đối và phản ứng nhanh với các biến động trên đường đua.",
-                    "Cảm giác khi lái một chiếc F1 ở tốc độ cao không giống với bất kỳ loại xe nào khác, đó là trải nghiệm độc đáo và gây nhiều kích thích.",
-                    "Các tay đua F1 phải không chỉ giỏi lái xe, mà còn phải hiểu rõ về kỹ thuật, đặc điểm của xe và cảm nhận được đường đua.",
-                    "Đua xe F1 không chỉ là cuộc thi tốc độ, mà còn là thử thách về sức bền và tinh thần. Mỗi cuộc đua kéo dài hàng chục vòng đua với tốc độ cao.",
-                    "Mỗi chiếc xe F1 được thiết kế và điều chỉnh đặc biệt để đạt hiệu suất tối đa trên từng loại đường đua.",
-                    "Đua đội và chiến lược đua là yếu tố quan trọng, các tay đua thường phối hợp với đồng đội để đạt được kết quả tốt nhất.",
-                    "Thời gian pit stop là quyết định quan trọng, một pit stop nhanh và chính xác có thể thay đổi cả kịch bản của cuộc đua.",
-                    "F1 không chỉ thu hút người hâm mộ với tốc độ, mà còn với những câu chuyện và chiến tích đằng sau mỗi chiếc xe và tay đua.",
-                    "Cảm giác chiến thắng ở F1 không chỉ là niềm vinh dự cá nhân, mà còn là thành quả của cả đội ngũ lớn và sự hỗ trợ từ các nhà tài trợ."
-            );
+//            List<String> minamino_hai = List.of(
+//                    "Các chiếc xe đua F1 ngày nay đều được thiết kế để đạt tốc độ cực cao trên đường đua.",
+//                    "Mỗi chiếc xe F1 đều là kết quả của nhiều năm nghiên cứu và phát triển công nghệ.",
+//                    "Hệ thống động cơ trên các chiếc xe F1 thực sự là một ki marvel kỹ thuật, đem lại công suất đáng kinh ngạc.",
+//                    "Các đội đua F1 không chỉ cạnh tranh về tốc độ, mà còn về chiến lược và kỹ thuật lái xe.",
+//                    "Ở tốc độ cao, các hệ thống an toàn trên xe đua F1 trở thành yếu tố quan trọng nhất để bảo vệ tay lái.",
+//                    "Các tay đua F1 phải có kỹ năng tuyệt vời để điều khiển xe ở tốc độ cực nhanh và giữ cho nó ổn định trên đường đua.",
+//                    "Cấu trúc nhẹ và sức mạnh động cơ của các chiếc F1 giúp chúng tăng tốc độ với tốc độ kinh ngạc.",
+//                    "Đội kỹ thuật của mỗi đội đua F1 thường xuyên cải tiến và tối ưu hóa các thành phần của xe để đạt hiệu suất tốt nhất.",
+//                    "Dù điều kiện thời tiết có thể thay đổi, các tay đua F1 vẫn phải thích ứng và lái xe ở tốc độ tối đa.",
+//                    "Mỗi mùa giải F1 đều mang đến những trận đấu căng thẳng và hấp dẫn, là sự kết hợp của kỹ năng, chiến lược và may mắn.",
+//                    "Đua xe F1 không chỉ là một môn thể thao, mà còn là một nghệ thuật kết hợp giữa tốc độ và chiến thuật.",
+//                    "Mỗi đội đua F1 đều có các chiến lược đua riêng, bao gồm lịch trình dừng hạng, chiến thuật pit stop và quản lý lốp.",
+//                    "Đua xe F1 đòi hỏi sự tập trung tuyệt đối và phản ứng nhanh với các biến động trên đường đua.",
+//                    "Cảm giác khi lái một chiếc F1 ở tốc độ cao không giống với bất kỳ loại xe nào khác, đó là trải nghiệm độc đáo và gây nhiều kích thích.",
+//                    "Các tay đua F1 phải không chỉ giỏi lái xe, mà còn phải hiểu rõ về kỹ thuật, đặc điểm của xe và cảm nhận được đường đua.",
+//                    "Đua xe F1 không chỉ là cuộc thi tốc độ, mà còn là thử thách về sức bền và tinh thần. Mỗi cuộc đua kéo dài hàng chục vòng đua với tốc độ cao.",
+//                    "Mỗi chiếc xe F1 được thiết kế và điều chỉnh đặc biệt để đạt hiệu suất tối đa trên từng loại đường đua.",
+//                    "Đua đội và chiến lược đua là yếu tố quan trọng, các tay đua thường phối hợp với đồng đội để đạt được kết quả tốt nhất.",
+//                    "Thời gian pit stop là quyết định quan trọng, một pit stop nhanh và chính xác có thể thay đổi cả kịch bản của cuộc đua.",
+//                    "F1 không chỉ thu hút người hâm mộ với tốc độ, mà còn với những câu chuyện và chiến tích đằng sau mỗi chiếc xe và tay đua.",
+//                    "Cảm giác chiến thắng ở F1 không chỉ là niềm vinh dự cá nhân, mà còn là thành quả của cả đội ngũ lớn và sự hỗ trợ từ các nhà tài trợ."
+//            );
 
             createDirectConversationBetween2Users(minamino, billie, minanino_billie);
             createDirectConversationBetween2Users(minamino, strange, minamino_strange);
             createDirectConversationBetween2Users(minamino, tienAnh, minamino_tienAnh);
             createDirectConversationBetween2Users(minamino, nam, minamino_nam);
-            createDirectConversationBetween2Users(minamino, lam, minamino_lam);
-            createDirectConversationBetween2Users(minamino, hai, minamino_hai);
+//            createDirectConversationBetween2Users(minamino, lam, minamino_lam);
+//            createDirectConversationBetween2Users(minamino, hai, minamino_hai);
 
 
             createDirectConversationBetween2Users(billie, strange, billie_strange);
             createDirectConversationBetween2Users(billie, tienAnh, billie_tienAnh);
             createDirectConversationBetween2Users(strange, tienAnh, strange_tienAnh);
+
+
+            addFriend(minamino, billie);
+            addFriend(minamino, tienAnh);
+            addFriend(minamino, strange);
+            addFriend(minamino, nam);
+            saveFriendRequest(lam, minamino);
+            saveFriendRequest(hai, minamino);
 
         }
 
@@ -273,8 +285,9 @@ public class UserInitializer implements CommandLineRunner {
                 .joinAt(LocalDateTime.now())
                 .username(username)
                 .password(passwordEncoder.encode("1"))
-                .directConversationInfoList(new ArrayList<>(0))
-                .groupConversationInfoList(new ArrayList<>(0))
+                .conversations(new ArrayList<>(0))
+                .friends(new ArrayList<>())
+                .receivedFriendRequests(new ArrayList<>())
                 .build();
     }
 
@@ -289,7 +302,7 @@ public class UserInitializer implements CommandLineRunner {
                 .build();
 
         directConversation = directConversationRepo.save(directConversation);
-
+        System.out.println("Save the conversation between " + user1.getDisplayName() + " and " + user2.getDisplayName());
         // add conversation to each member's conversation list
         for (User member : members) {
             member.joinConversation(directConversation);
@@ -340,5 +353,36 @@ public class UserInitializer implements CommandLineRunner {
                 .repliedMessageId(null)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+
+    private void addFriend(User user1, User user2) {
+        System.out.println("Try to add " + user2.getDisplayName() + " to " + user1.getDisplayName() + "'s friend list");
+        List<User> user1FriendList = user1.getFriends();
+        user1FriendList.add(user2);
+
+        List<User> user2FriendList = user2.getFriends();
+        user2FriendList.add(user1);
+
+        userRepo.saveAll(List.of(user1, user2));
+//        userRepo.save(user2);
+        System.out.println("Add " + user2.getDisplayName() + " to " + user1.getDisplayName() + "'s friend list");
+    }
+
+    private void saveFriendRequest(User requestSender, User requestReceiver) {
+        System.out.println("Try to save a friend request from " + requestSender.getDisplayName() + " to " + requestReceiver.getDisplayName());
+        FriendRequest request = FriendRequest.builder()
+                .createdAt(LocalDateTime.now())
+                .sender(requestSender)
+                .receiver(requestReceiver)
+                .isAccepted(false)
+                .build();
+
+        friendRequestRepo.save(request);
+
+        requestReceiver.getReceivedFriendRequests().add(request);
+        userRepo.save(requestReceiver);
+
+        System.out.println("Save a friend request from " + requestSender.getDisplayName() + " to " + requestReceiver.getDisplayName());
     }
 }
