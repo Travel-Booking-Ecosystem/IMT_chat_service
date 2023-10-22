@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -19,6 +20,7 @@ public class Message {
     // the reason why i store string as id instead of ObjectId
     // is because message will only be retrieved along with the conversation it belongs to
     // and the conversation has all the information that the message needs (user info)
+    @Id
     private String id;
     private long messageNo; // an incremental number for each message in the conversation it belongs to
     private String senderId;

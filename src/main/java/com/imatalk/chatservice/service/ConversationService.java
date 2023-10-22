@@ -9,6 +9,7 @@ import com.imatalk.chatservice.repository.ConversationRepo;
 import com.imatalk.chatservice.repository.MessageRepo;
 import com.imatalk.chatservice.utils.Utils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 //TODO: you will need to rename this class to ConversationService, since there is only one service for both direct and group conversation
 //TODO: change the repositiory as well
+@Slf4j
 public class ConversationService {
 
     private final ConversationRepo conversationRepo;
@@ -26,7 +28,8 @@ public class ConversationService {
 
 
     public boolean checkIfConversationExistsBetween2Users(User user1, User user2) {
-        return conversationRepo.findByMembersIn(List.of(user1, user2)).isPresent();
+        Conversation conversationBetween2Users = getConversationBetween2Users(user1, user2);
+        return conversationBetween2Users != null;
     }
 
     public Conversation createAndSaveConversationBetween2Users(User user1, User user2) {
@@ -42,11 +45,18 @@ public class ConversationService {
     public List<Conversation> getConversationListOfUser(User user, int numberOfConversations) {
 
         // get the first n conversation ids from the user's conversation list
-        List<String> conversationIds = user.getConversations().subList(0, numberOfConversations);
+        List<String> conversationIds = user.getConversations()
+                .subList(0, numberOfConversations).stream()
+                .map(Conversation::getId).toList();
 
         // get a number of conversations from database
-        List<Conversation> directConversations = conversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);
+        log.info("Get {} conversations from database", numberOfConversations);
+        List<Conversation> directConversations = user.getConversations();
+        // sort by last updated at
+        directConversations.sort((c1, c2) -> c2.getLastUpdatedAt().compareTo(c1.getLastUpdatedAt()));
 
+//        List<Conversation> directConversations = conversationRepo.findAllByIdInOrderByLastUpdatedAtDesc(conversationIds);
+        log.info("Get {} conversations from database done", numberOfConversations);
         return directConversations;
     }
 
@@ -111,5 +121,18 @@ public class ConversationService {
                 .seenMessageTracker(Conversation.createDefaultSeenMessageTracker(List.of()))
                 .build();
         return conversation;
+    }
+
+    public Conversation getConversationBetween2Users(User user1, User user2) {
+        Conversation conversationBetween2Users = user1.getConversations()
+                .stream().filter(c -> !c.isGroupConversation()) // only get direct conversations
+                .filter(c -> c.getMembers()
+                        // find the conversation that has user2 as a member
+                        .stream()
+                        .anyMatch(member -> member.getId().equals(user2.getId()))
+                )
+                .findFirst().orElse(null);
+
+        return conversationBetween2Users;
     }
 }

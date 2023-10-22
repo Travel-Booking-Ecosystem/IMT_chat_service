@@ -166,4 +166,17 @@ public class ChatService {
     }
 
 
+    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(User currentUser, String otherUserId) {
+        User otherUser = userService.getUserById(otherUserId);
+        Conversation conversation = conversationService.getConversationBetween2Users(currentUser, otherUser);
+
+        CommonResponse commonResponse = null;
+        if (conversation == null) {
+            commonResponse = CommonResponse.error("Conversation not found");
+        } else {
+            commonResponse = CommonResponse.success("Conversation found", new ConversationInfoDTO(conversation, currentUser));
+        }
+
+        return ResponseEntity.ok(commonResponse);
+    }
 }

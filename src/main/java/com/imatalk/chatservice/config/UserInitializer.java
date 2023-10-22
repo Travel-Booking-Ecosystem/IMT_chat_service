@@ -381,7 +381,8 @@ public class UserInitializer implements CommandLineRunner {
         friendRequestRepo.save(request);
 
         requestReceiver.getReceivedFriendRequests().add(request);
-        userRepo.save(requestReceiver);
+        requestSender.getSentFriendRequests().add(request);
+        userRepo.saveAll(List.of(requestReceiver, requestSender));
 
         System.out.println("Save a friend request from " + requestSender.getDisplayName() + " to " + requestReceiver.getDisplayName());
     }

@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 // TODO: you should have storing BLOB, Encryption for messages
 //@CrossOrigin(origins = "http://localhost:3000")
 //TODO: please add logging to all the methods (AOP)
+
+// TODO: add logging
 public class ChatController {
 
     private final ChatService chatService;
@@ -34,6 +36,11 @@ public class ChatController {
     @PostMapping("/create-group-conversation")
     public ResponseEntity<CommonResponse> createGroupConversation(@RequestBody CreateGroupConversationRequest request) {
         return chatService.createGroupConversation(getCurrentUser(), request);
+    }
+
+    @GetMapping("/conversation-info-with-other-user/{otherUserId}")
+    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(@PathVariable String otherUserId) {
+        return chatService.getConversationIdWithOtherUser(getCurrentUser(), otherUserId);
     }
 
     // TODO: change to get send direct message

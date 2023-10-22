@@ -9,6 +9,7 @@ import com.imatalk.chatservice.exception.ApplicationException;
 import com.imatalk.chatservice.repository.FriendRequestRepo;
 import com.imatalk.chatservice.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
 
@@ -36,12 +38,12 @@ public class UserService implements UserDetailsService {
     }
 
 
-
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.info("Load user by username {}", username);
         return userRepo.findById(username).orElseThrow(() -> new ApplicationException("User not found"));
     }
+
     public void saveAll(Iterable<User> users) {
         userRepo.saveAll(users);
     }
@@ -75,19 +77,21 @@ public class UserService implements UserDetailsService {
     }
 
     public ResponseEntity<CommonResponse> getConversationList(User currentUser) {
+        log.info("Get conversation list for user {}", currentUser.getUsername());
         ConversationListDTO sidebarDTO = new ConversationListDTO();
         sidebarDTO.setCurrentConversationId(currentUser.getCurrentConversationId());
         // fetch the user's recent conversations
-        List<ConversationInfoDTO> conversationList = getRecentDirectConversationInfo(currentUser);
+        List<ConversationInfoDTO> conversationList = getRecentConversationInfo(currentUser);
         sidebarDTO.setConversations(conversationList);
 
         CommonResponse response = CommonResponse.success("Sidebar retrieved", sidebarDTO);
         return ResponseEntity.ok(response);
     }
 
-    private List<ConversationInfoDTO> getRecentDirectConversationInfo(User user) {
+    private List<ConversationInfoDTO> getRecentConversationInfo(User user) {
         // only get some recent conversations, if the user has too little conversations, get all of them
         int recentConversationNumber = Math.min(NUMBER_OF_CONVERSATION_PER_REQUEST, user.getConversations().size());
+
         List<Conversation> directConversations = conversationService.getConversationListOfUser(user, recentConversationNumber);
 
         List<ConversationInfoDTO> directConversationDTOs = directConversations.stream()
@@ -110,57 +114,59 @@ public class UserService implements UserDetailsService {
     }
 
     public ResponseEntity<CommonResponse> addFriend(User currentUser, String otherUserId) {
+        log.info("Add friend {} for user {}", otherUserId, currentUser.getUsername());
+        log.info("get user by id {}", otherUserId);
         //TODO move the code to the ContactService
         User otherUser = getUserById(otherUserId);
 
-        boolean alreadyFriend = currentUser.getFriends().stream()
-                .anyMatch(friend -> friend.getId().equals(otherUserId));
 
-        if (alreadyFriend) {
-            throw new ApplicationException("You are already friend with this user");
-        }
-
-
-        boolean alreadySentRequest = currentUser.getSentFriendRequests().stream()
-                .anyMatch(friendRequest -> friendRequest.getReceiver().getId().equals(otherUserId));
-
-        if (alreadySentRequest) {
-            throw new ApplicationException("You have already sent a friend request to this user");
-        }
-
-
-        boolean receiverHasSentOtherRequest = currentUser.getReceivedFriendRequests().stream()
-                .anyMatch(friendRequest -> friendRequest.getSender().getId().equals(otherUserId));
+//        boolean alreadyFriend = currentUser.getFriends().stream()
+//                .anyMatch(friend -> friend.getId().equals(otherUserId));
+//
+//        if (alreadyFriend) {
+//            throw new ApplicationException("You are already friend with this user");
+//        }
+//
+//
+//        boolean alreadySentRequest = currentUser.getSentFriendRequests().stream()
+//                .anyMatch(friendRequest -> friendRequest.getReceiver().getId().equals(otherUserId));
+//
+//        if (alreadySentRequest) {
+//            throw new ApplicationException("You have already sent a friend request to this user");
+//        }
 
 
         // if the other user has already sent a friend request to the current user,
         // and the current user is sending the friend request to that other user
         // it means that the current user is accepting the friend request
-        if (receiverHasSentOtherRequest) {
-            FriendRequest friendRequest = currentUser.getReceivedFriendRequests().stream()
-                    .filter(request -> request.getSender().getId().equals(otherUserId))
-                    .findFirst()
-                    .orElseThrow(() -> new ApplicationException("Friend request not found"));
+//        if (receiverHasSentOtherRequest) {
+//            log.info("Accept friend request");
+//            FriendRequest friendRequest = currentUser.getReceivedFriendRequests().stream()
+//                    .filter(request -> request.getSender().getId().equals(otherUserId))
+//                    .findFirst()
+//                    .orElseThrow(() -> new ApplicationException("Friend request not found"));
+//
+//            acceptFriend(currentUser, friendRequest.getId());
+//
+//            return ResponseEntity.ok(CommonResponse.success("Add friend successfully"));
+//
+//        } else {
+        log.info("Create new friend request");
+        FriendRequest friendRequest = FriendRequest
+                .builder()
+                .createdAt(LocalDateTime.now())
+                .receiver(otherUser)
+                .sender(currentUser)
+                .build();
 
-            acceptFriend(currentUser, friendRequest.getId());
+        friendRequestRepo.save(friendRequest);
 
-            return ResponseEntity.ok(CommonResponse.success("Add friend successfully"));
+        log.info("Add friend request to user");
+        // add the friend request to the current user's friend request list and the other user's friend request list
+        otherUser.getReceivedFriendRequests().add(friendRequest);
+        currentUser.getSentFriendRequests().add(friendRequest);
+        userRepo.saveAll(List.of(currentUser, otherUser));
 
-        } else {
-            FriendRequest friendRequest = FriendRequest
-                    .builder()
-                    .createdAt(LocalDateTime.now())
-                    .receiver(otherUser)
-                    .sender(currentUser)
-                            .build();
-
-            friendRequestRepo.save(friendRequest);
-            // add the friend request to the current user's friend request list and the other user's friend request list
-            otherUser.getReceivedFriendRequests().add(friendRequest);
-            currentUser.getSentFriendRequests().add(friendRequest);
-            userRepo.saveAll(List.of(currentUser, otherUser));
-
-        }
         return ResponseEntity.ok(CommonResponse.success("Friend request sent"));
     }
 
@@ -185,21 +191,26 @@ public class UserService implements UserDetailsService {
 
         User sender = friendRequest.getSender();
         User receiver = friendRequest.getReceiver();
-        makeTwoUsersFriend(sender, receiver, friendRequest);
+        makeTwoUsersFriend(sender, receiver);
 
         userRepo.saveAll(List.of(sender, receiver));
         return ResponseEntity.ok(CommonResponse.success("Friend request accepted"));
     }
 
-    private void makeTwoUsersFriend(User sender, User receiver, FriendRequest friendRequest) {
+    private void makeTwoUsersFriend(User sender, User receiver) {
 
         // add 2 users to each other's friend list and
-        // remove the friend request from the receiver's friend request list and the sender's friend request list
+        // remove any friend request between them
         sender.getFriends().add(receiver);
-        sender.getReceivedFriendRequests().removeIf(request -> request.getId().equals(friendRequest.getId()));
+        sender.getSentFriendRequests().removeIf(request -> {
+            return request.getReceiver().getId().equals(receiver.getId()) || request.getSender().getId().equals(receiver.getId());
+        });
 
         receiver.getFriends().add(sender);
-        receiver.getSentFriendRequests().removeIf(request -> request.getId().equals(friendRequest.getId()));
+        receiver.getReceivedFriendRequests().removeIf(request -> {
+            return request.getReceiver().getId().equals(sender.getId()) || request.getSender().getId().equals(sender.getId());
+        });
+
 
     }
 

@@ -2,6 +2,7 @@ package com.imatalk.chatservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -16,8 +17,9 @@ import java.util.Map;
 @NoArgsConstructor
 @Builder
 @Data
-@ToString(exclude = {"messages"}) // to prevent the call to getMessages() method when toString() is called
+@ToString(exclude = {"members", "messages"}) // to prevent the call to getMessages() method when toString() is called
 public class Conversation {
+    @Id
     private String id;
     private LocalDateTime createdAt;
     @DBRef
@@ -29,7 +31,8 @@ public class Conversation {
     private List<Message> messages;
     private Map<String, Long> seenMessageTracker; // track each user's last seen message number in this conversation
 
-    private boolean isGroupConversation;
+    // it to be false by default if it is not set
+    private boolean isGroupConversation = false;
     private String groupName;
     private String groupAvatar;
 

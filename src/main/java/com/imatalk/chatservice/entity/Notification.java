@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,8 @@ import java.time.LocalDateTime;
 public class Notification {
 
     //TODO: add the data field for DM, GM, and NOTI
+
+    @Id
     private String id;
     private String userId;
     private NotificationType type;
