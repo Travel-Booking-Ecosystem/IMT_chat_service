@@ -1,8 +1,9 @@
 package com.imatalk.chatservice.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,13 +15,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-@Document(collection = "users")
+@Entity
+@Table(name = "users")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
-@ToString(exclude = {"conversations", "receivedFriendRequests", "sentFriendRequests", "friends"}) // to prevent infinite loop when toString() is called
+@ToString(exclude = {"conversations", "friends"}) // to prevent infinite loop when toString() is called
 public class User implements UserDetails {
+
     @Id
     private String id;
     // TODO: remove firstName and lastName, use displayName instead
@@ -31,28 +34,34 @@ public class User implements UserDetails {
     private String avatar;
     private LocalDateTime joinAt;
     private String currentConversationId; // the id of the conversation that the user is currently in
-    @DBRef
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_conversation", // Name of the join table
+            joinColumns = @JoinColumn(name = "user_id"), // Foreign key column in the join table for User
+            inverseJoinColumns = @JoinColumn(name = "conversation_id") // Foreign key column in the join table for Conversation
+    )
+    @JsonIgnore
     private List<Conversation> conversations;
     //TODO: create a list of new friend request for this user (one more field or for the DTO only)
-    @DBRef
-    private List<FriendRequest> receivedFriendRequests;
-    @DBRef
-    private List<FriendRequest> sentFriendRequests;
 
-    //TODO: List<User> friends
-    @DBRef
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "receiver", fetch = FetchType.LAZY)
+//    private List<FriendRequest> receivedFriendRequests;
+//
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "sender", fetch = FetchType.LAZY)
+//    private List<FriendRequest> sentFriendRequests;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<User> friends;
 
     public void joinConversation(Conversation conversation) {
         conversations.add(conversation);
     }
 
-    public List<Conversation> getConversations() {
-        if (conversations == null) {
-            conversations = new ArrayList<>();
-        }
-        return conversations;
-    }
+
 
 
     @Override
@@ -81,20 +90,26 @@ public class User implements UserDetails {
         return true;
     }
 
-
-    public List<FriendRequest> getReceivedFriendRequests() {
-        if (receivedFriendRequests == null) {
-            receivedFriendRequests = new ArrayList<>();
+    public List<Conversation> getConversations() {
+        if (conversations == null) {
+            conversations = new ArrayList<>();
         }
-        return receivedFriendRequests;
+        return conversations;
     }
 
-    public List<FriendRequest> getSentFriendRequests() {
-        if (sentFriendRequests == null) {
-            sentFriendRequests = new ArrayList<>();
-        }
-        return sentFriendRequests;
-    }
+//    public List<FriendRequest> getReceivedFriendRequests() {
+//        if (receivedFriendRequests == null) {
+//            receivedFriendRequests = new ArrayList<>();
+//        }
+//        return receivedFriendRequests;
+//    }
+//
+//    public List<FriendRequest> getSentFriendRequests() {
+//        if (sentFriendRequests == null) {
+//            sentFriendRequests = new ArrayList<>();
+//        }
+//        return sentFriendRequests;
+//    }
 
     public List<User> getFriends() {
         if (friends == null) {

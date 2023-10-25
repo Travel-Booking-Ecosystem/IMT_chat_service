@@ -1,20 +1,19 @@
 package com.imatalk.chatservice.service;
 
-import com.imatalk.chatservice.constants.ValidationRegex;
 import com.imatalk.chatservice.dto.request.LoginRequest;
 import com.imatalk.chatservice.dto.request.RegistrationRequest;
 import com.imatalk.chatservice.dto.response.CommonResponse;
 import com.imatalk.chatservice.dto.response.LoginResponse;
 import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.exception.ApplicationException;
-import com.imatalk.chatservice.repository.UserRepo;
+import com.imatalk.chatservice.relationRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.UUID;
 
 import static com.imatalk.chatservice.utils.Utils.generateAvatarUrl;
 
@@ -22,7 +21,7 @@ import static com.imatalk.chatservice.utils.Utils.generateAvatarUrl;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepo userRepo;
+    private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -46,6 +45,7 @@ public class AuthService {
 
         return User.builder()
                 .email(request.getEmail())
+                .id(UUID.randomUUID().toString())
                 .displayName(request.getDisplayName())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .username("@" + username)

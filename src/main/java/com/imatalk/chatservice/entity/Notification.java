@@ -21,13 +21,13 @@ public class Notification {
 
     @Id
     private String id;
-    private String userId;
-    private NotificationType type;
+    private String userId; // the user who receives the notification
+    private String image;
+    private String title;
     private String content;
+    private NotificationType type;
     private boolean unread;
     private LocalDateTime createdAt;
-    private String conversationId;
-    private String senderId;
     public enum NotificationType {
         //TODO: seen message notification (only for current conversation)
         D_M, // for direct message

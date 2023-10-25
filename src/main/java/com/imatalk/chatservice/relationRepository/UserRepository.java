@@ -1,15 +1,14 @@
-package com.imatalk.chatservice.repository;
+package com.imatalk.chatservice.relationRepository;
 
 import com.imatalk.chatservice.entity.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepo extends MongoRepository<User, String> {
-
+public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmailIgnoreCase(String email);
 
     Optional<User> findByUsername(String username);
@@ -23,5 +22,4 @@ public interface UserRepo extends MongoRepository<User, String> {
     List<User> findAllByUsernameStartsWithIgnoreCase(String keyword);
 
     List<User> findAllByDisplayNameStartsWithIgnoreCase(String keyword);
-
 }

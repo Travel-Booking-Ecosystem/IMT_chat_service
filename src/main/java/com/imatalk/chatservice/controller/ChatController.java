@@ -30,30 +30,30 @@ public class ChatController {
     //TODO: you need to add an api to send message to user (when the conversation is not created yet)
     @PostMapping("/create-direct-conversation")
     public ResponseEntity<CommonResponse> createDirectConversation(@RequestParam String otherUserId) {
-        return chatService.createDirectConversation(getCurrentUser(), otherUserId);
+        return chatService.createDirectConversation(getCurrentUser().getId(), otherUserId);
     }
 
     @PostMapping("/create-group-conversation")
     public ResponseEntity<CommonResponse> createGroupConversation(@RequestBody CreateGroupConversationRequest request) {
-        return chatService.createGroupConversation(getCurrentUser(), request);
+        return chatService.createGroupConversation(getCurrentUser().getId(), request);
     }
 
     @GetMapping("/conversation-info-with-other-user/{otherUserId}")
     public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(@PathVariable String otherUserId) {
-        return chatService.getConversationIdWithOtherUser(getCurrentUser(), otherUserId);
+        return chatService.getConversationIdWithOtherUser(getCurrentUser().getId(), otherUserId);
     }
 
     // TODO: change to get send direct message
     //TODO: change to send message to conversation
     @PostMapping("/send-message")
     public ResponseEntity<CommonResponse> sendMessages(@RequestBody SendMessageRequest request) {
-        return chatService.sendMessage(getCurrentUser(), request);
+        return chatService.sendMessage(getCurrentUser().getId(), request);
     }
 
     @GetMapping("/conversation-chat-history")
     public ResponseEntity<CommonResponse> getChatHistory(@RequestParam String conversationId,
                                                          @RequestParam(defaultValue = "-1") int messageNo) {
-        return chatService.getConversationChatHistory(getCurrentUser(), conversationId, messageNo);
+        return chatService.getConversationChatHistory(getCurrentUser().getId(), conversationId, messageNo);
     }
 
     public User getCurrentUser() {

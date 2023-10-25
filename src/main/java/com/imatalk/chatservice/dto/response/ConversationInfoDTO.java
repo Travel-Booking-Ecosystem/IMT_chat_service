@@ -1,8 +1,8 @@
 package com.imatalk.chatservice.dto.response;
 
 import com.imatalk.chatservice.entity.Conversation;
-import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
+import com.imatalk.chatservice.enums.ConversationStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -17,29 +17,12 @@ public class ConversationInfoDTO {
     private LastMessageDTO lastMessage;
     private LocalDateTime lastUpdate; // this is the time of the last message or if there is no message, the time of the conversation creation
     private boolean unread;
+    private String status;
 
-    @Data
-    public static class LastMessageDTO {
-        private String id;
-        private String content;
-        private LocalDateTime createdAt;
 
-        public LastMessageDTO(Message message) {
-            this.id = message.getId();
-            this.content = message.getContent();
-            this.createdAt = message.getCreatedAt();
-        }
 
-    }
 
     public ConversationInfoDTO(Conversation conversation, User currentUser) {
-        // for the current user, the conversation name and avatar are the other user's username and avatar,
-        // the last time the conversation was updated is the last time a message was sent,
-        // or if there is no message, the time of the conversation creation
-        Message lastMessage = conversation.getLastMessage();
-        LocalDateTime lastUpdate = lastMessage != null ? lastMessage.getCreatedAt() : conversation.getCreatedAt();
-        LastMessageDTO lastMessageDTO = convertToLastMessageDTO(lastMessage);
-
 
         this.id = conversation.getId();
 
@@ -49,37 +32,82 @@ public class ConversationInfoDTO {
         } else {
             // if the conversation is not a group conversation, then it is a direct conversation, and there are only 2 members in the conversation
             User otherUser = getTheOtherUserInConversation(currentUser, conversation);
+            // for the current user, the conversation name and avatar are the other user's username and avatar,
             this.name = otherUser.getDisplayName();
             this.avatar = otherUser.getAvatar();
         }
 
-        this.lastMessage = lastMessageDTO;
-        this.lastUpdate = lastUpdate;
+        this.status = conversation.getStatus().toString();
+        this.lastMessage = getLastMessageInConversation(conversation, currentUser);
+        this.lastUpdate = getLastUpdateTimeOfConversation(conversation);
         this.unread =  checkIfConversationIsUnread(conversation, currentUser);
     }
 
+    private LastMessageDTO getLastMessageInConversation(Conversation conversation, User currentUser) {
+
+        if (conversation.getLastMessage() != null) {
+            return new LastMessageDTO(conversation.getLastMessage());
+        }
+
+        // when the conversation has no message, create a default last message
+        String lastMessageContent = null;
+        if (conversation.isGroupConversation()) {
+            lastMessageContent = "You has joined the conversation";
+        } else {
+            User otherUser = getTheOtherUserInConversation(currentUser, conversation);
+            lastMessageContent = "Let's talk to " + otherUser.getDisplayName();
+        }
+
+        return new LastMessageDTO(Conversation.LastMessage.builder()
+                .lastMessageId("")
+                .lastMessageContent(lastMessageContent)
+                .lastMessageNo(0L)
+                .lastMessageCreatedAt(conversation.getCreatedAt()) // TODO: if the conversation is a group conversation, this is the time when user join the conversation
+                .build());
+    }
+
+    private LocalDateTime getLastUpdateTimeOfConversation(Conversation conversation) {
+        // the last time the conversation was updated is the last time a message was sent,
+        // or if there is no message, the time of the conversation creation
+
+        if (conversation.getLastMessage() != null) {
+            return conversation.getLastMessage().getLastMessageCreatedAt();
+        }
+
+        return conversation.getCreatedAt();
+
+    }
+
+
+    @Data
+    public static class LastMessageDTO {
+        private String id;
+        private String content;
+        private LocalDateTime createdAt;
+
+        public LastMessageDTO(Conversation.LastMessage message) {
+            this.id = message.getLastMessageId();
+            this.content = message.getLastMessageContent();
+            this.createdAt = message.getLastMessageCreatedAt();
+        }
+
+    }
     private boolean checkIfConversationIsUnread(Conversation conversation, User currentUser) {
         // if the current user has seen all messages in the conversation, then the conversation is seen
-        Message lastMessage = conversation.getLastMessage();
+        Conversation.LastMessage lastMessage = conversation.getLastMessage();
         if (lastMessage == null) {
-            return false; // if there is no message, then the conversation is seen
+            return false ; // if there is no message, then the conversation is seen
         }
 
         long lastSeenMessageNo = conversation.getLastSeenMessageNoOfMember(currentUser.getId());
 
         // if the last seen message number of user is less than the message number of the latest message
         // it means that the user has not seen the latest message, so the conversation is unread
-        return lastSeenMessageNo < lastMessage.getMessageNo();
+        return lastSeenMessageNo < lastMessage.getLastMessageNo();
 
     }
 
 
-    private LastMessageDTO convertToLastMessageDTO(Message lastMessage) {
-        if (lastMessage == null) {
-            return null;
-        }
-        return new LastMessageDTO(lastMessage);
-    }
 
     public  User getTheOtherUserInConversation(User user, Conversation conversation) {
 

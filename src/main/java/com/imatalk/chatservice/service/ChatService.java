@@ -11,6 +11,7 @@ import com.imatalk.chatservice.event.Event;
 import com.imatalk.chatservice.event.EventName;
 import com.imatalk.chatservice.exception.ApplicationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -22,17 +23,22 @@ import static com.imatalk.chatservice.dto.response.ConversationChatHistoryDTO.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatService {
-
+    // TODO: create Notification Service to send WS messages to the client
     private final SimpMessagingTemplate messagingTemplate;
+    @Value("${USER_TOPIC}")
+    private String USER_TOPIC;
+
+
     private final UserService userService;
     private final ConversationService conversationService;
     private final MessageService messageService;
 
-    @Value("${USER_TOPIC}")
-    private String USER_TOPIC;
 
-    public ResponseEntity<CommonResponse> createDirectConversation(User currentUser, String otherUserId) {
+
+    public ResponseEntity<CommonResponse> createDirectConversation(String currentUserId, String otherUserId) {
+        User currentUser = userService.getUserById(currentUserId);
         User otherUser = userService.getUserById(otherUserId);
 
         // check if conversation already exists
@@ -56,8 +62,8 @@ public class ChatService {
 
     }
 
-    public ResponseEntity<CommonResponse> sendMessage(User currentUser, SendMessageRequest request) {
-
+    public ResponseEntity<CommonResponse> sendMessage(String currentUserId, SendMessageRequest request) {
+        User currentUser = userService.getUserById(currentUserId);
         System.out.println("User id: " + currentUser.getId());
         System.out.println("Conversation id: " + request.getConversationId());
         System.out.println("Message content: " + request.getContent());
@@ -112,9 +118,11 @@ public class ChatService {
                 .anyMatch(user -> user.getId().equals(currentUser.getId()));
     }
 
-    public ResponseEntity<CommonResponse> getConversationChatHistory(User currentUser, String conversationId, long messageNo) {
+    public ResponseEntity<CommonResponse> getConversationChatHistory(String currentUserId, String conversationId, long messageNo) {
+        User currentUser = userService.getUserById(currentUserId);
         //TODO: update the seen message number for the user when get messages in the conversation
         Conversation directConversation = conversationService.getConversationById(conversationId);
+
         if (!checkUserInConversation(directConversation, currentUser)) {
             throw new ApplicationException("User is not in the conversation");
         }
@@ -128,7 +136,7 @@ public class ChatService {
 
         // when user gets messages, set the seen message number of the user to be the last message number of the conversation
         //TODO: use kafka to send notification to the other user when this seen the message
-        directConversation.updateUserSeenLatestMessage(currentUser); // update the seen message number of the user
+        conversationService.updateUserSenLatestMessage(directConversation, currentUser);
         conversationService.save(directConversation);
         return ResponseEntity.ok(CommonResponse.success("Messages retrieved", dto));
 
@@ -141,9 +149,13 @@ public class ChatService {
 
 
 
-    public ResponseEntity<CommonResponse> createGroupConversation(User currentUser, CreateGroupConversationRequest request) {
+    public ResponseEntity<CommonResponse> createGroupConversation(String currentUserId, CreateGroupConversationRequest request) {
 
+        User currentUser = userService.getUserById(currentUserId);
         // TODO: you need to check if group name is null or empty
+        log.info("Group name: " + request.getGroupName());
+        log.info("Member ids: " + request.getMemberIds());
+
         String groupName = request.getGroupName();
         List<String> memberIds = request.getMemberIds();
         // add current user to the list of members
@@ -162,11 +174,21 @@ public class ChatService {
         }
         userService.saveAll(members);
 
+        for (User member : members) {
+            // send notification to each member
+            Event event = Event.builder()
+                    .userId(member.getId())
+                    .name(EventName.NEW_CONVERSATION)
+                    .payload(new ConversationInfoDTO(conversation, currentUser))
+                    .build();
+            messagingTemplate.convertAndSend(USER_TOPIC + "/" + member.getId(), event);
+        }
         return ResponseEntity.ok(CommonResponse.success("Group conversation created"));
     }
 
 
-    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(User currentUser, String otherUserId) {
+    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(String currentUserId, String otherUserId) {
+        User currentUser = userService.getUserById(currentUserId);
         User otherUser = userService.getUserById(otherUserId);
         Conversation conversation = conversationService.getConversationBetween2Users(currentUser, otherUser);
 

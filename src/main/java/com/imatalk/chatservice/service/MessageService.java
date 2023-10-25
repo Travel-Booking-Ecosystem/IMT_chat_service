@@ -4,7 +4,7 @@ import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
-import com.imatalk.chatservice.repository.MessageRepo;
+import com.imatalk.chatservice.mongoRepository.MessageRepo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 

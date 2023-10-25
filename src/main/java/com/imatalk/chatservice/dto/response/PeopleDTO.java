@@ -25,7 +25,6 @@ public class PeopleDTO {
         this.displayName = user.getDisplayName();
         this.email = user.getEmail();
         this.avatar = user.getAvatar();
-        this.isRequestSent = isRequestSent(currentUser, user);
         this.isFriend = isFriend(currentUser, user);
     }
 
@@ -40,8 +39,5 @@ public class PeopleDTO {
                 .anyMatch(friend -> friend.getId().equals(user.getId()));
     }
 
-    private static boolean isRequestSent(User currentUser, User user) {
-        return currentUser.getSentFriendRequests().stream()
-                .anyMatch(request -> request.getReceiver().getId().equals(user.getId()));
-    }
+
 }

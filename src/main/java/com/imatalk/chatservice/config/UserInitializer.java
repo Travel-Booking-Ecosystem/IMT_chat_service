@@ -4,10 +4,11 @@ import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.FriendRequest;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.entity.User;
-import com.imatalk.chatservice.repository.ConversationRepo;
-import com.imatalk.chatservice.repository.FriendRequestRepo;
-import com.imatalk.chatservice.repository.MessageRepo;
-import com.imatalk.chatservice.repository.UserRepo;
+import com.imatalk.chatservice.relationRepository.ConversationRepo;
+import com.imatalk.chatservice.relationRepository.FriendRequestRepo;
+import com.imatalk.chatservice.mongoRepository.MessageRepo;
+import com.imatalk.chatservice.relationRepository.UserRepository;
+import com.imatalk.chatservice.service.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,18 +18,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.imatalk.chatservice.entity.Conversation.createDefaultSeenMessageTracker;
+import static com.imatalk.chatservice.enums.ConversationStatus.NEW;
 
 @Component
 @RequiredArgsConstructor
 public class UserInitializer implements CommandLineRunner {
 
-    private final UserRepo userRepo;
+    private final UserRepository userRepo;
     private final ConversationRepo directConversationRepo;
     private final MessageRepo messageRepo;
     private final PasswordEncoder passwordEncoder;
     private final FriendRequestRepo friendRequestRepo;
+    private final ConversationService conversationService;
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -279,6 +283,7 @@ public class UserInitializer implements CommandLineRunner {
 
     private User createUser(String email, String avatar, String displayName, String username) {
         return User.builder()
+                .id(UUID.randomUUID().toString())
                 .email(email)
                 .avatar(avatar)
                 .displayName(displayName)
@@ -287,7 +292,6 @@ public class UserInitializer implements CommandLineRunner {
                 .password(passwordEncoder.encode("1"))
                 .conversations(new ArrayList<>(0))
                 .friends(new ArrayList<>())
-                .receivedFriendRequests(new ArrayList<>())
                 .build();
     }
 
@@ -295,10 +299,11 @@ public class UserInitializer implements CommandLineRunner {
         // create a conversation
         List<User> members = List.of(user1, user2);
         Conversation directConversation = Conversation.builder()
+                .id(UUID.randomUUID().toString())
                 .createdAt(LocalDateTime.now())
                 .members(members)
-                .seenMessageTracker(createDefaultSeenMessageTracker(members))
-                .messages(new ArrayList<>())
+                .status(NEW)
+                .messageSeenRecord(new ArrayList<>())
                 .build();
 
         directConversation = directConversationRepo.save(directConversation);
@@ -320,7 +325,7 @@ public class UserInitializer implements CommandLineRunner {
             messageRepo.save(message);
 
             messages.add(message);
-            directConversation.addMessage(message);
+            conversationService.addMessageToConversation(directConversation, message);
         }
 
         directConversationRepo.save(directConversation);
@@ -372,6 +377,7 @@ public class UserInitializer implements CommandLineRunner {
     private void saveFriendRequest(User requestSender, User requestReceiver) {
         System.out.println("Try to save a friend request from " + requestSender.getDisplayName() + " to " + requestReceiver.getDisplayName());
         FriendRequest request = FriendRequest.builder()
+                .id(UUID.randomUUID().toString())
                 .createdAt(LocalDateTime.now())
                 .sender(requestSender)
                 .receiver(requestReceiver)
@@ -380,9 +386,6 @@ public class UserInitializer implements CommandLineRunner {
 
         friendRequestRepo.save(request);
 
-        requestReceiver.getReceivedFriendRequests().add(request);
-        requestSender.getSentFriendRequests().add(request);
-        userRepo.saveAll(List.of(requestReceiver, requestSender));
 
         System.out.println("Save a friend request from " + requestSender.getDisplayName() + " to " + requestReceiver.getDisplayName());
     }

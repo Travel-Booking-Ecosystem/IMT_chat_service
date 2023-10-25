@@ -26,14 +26,14 @@ public class SearchController {
     @GetMapping("/people")
     public ResponseEntity<?> searchPeople(@RequestParam String keyword) {
         log.info("CONTROLLER search people with keyword: {}", keyword);
-        return searchService.searchPeople(getCurrentUser(),keyword);
+        return searchService.searchPeople(getCurrentUser().getId(),keyword);
     }
 
     //TODO: don't use @RequestParam, use @RequestBody instead (for security reason)
 
     @GetMapping("/messages")
     public ResponseEntity<?> searchMessages(@RequestParam String keyword) {
-        return searchService.searchMessages(getCurrentUser() ,keyword);
+        return searchService.searchMessages(getCurrentUser().getId() ,keyword);
     }
 
 

@@ -17,36 +17,47 @@ public class UserController {
     private final UserService userService;
     @GetMapping("/profile")
     public ResponseEntity<CommonResponse> getProfile() {
-        return userService.getProfile(getCurrentUser());
+        return userService.getProfile(getCurrentUser().getId());
     }
 
 
     // TODO: get conversation info list
     @GetMapping("/conversation-list")
     public ResponseEntity<CommonResponse> getSidebar() {
-        return userService.getConversationList(getCurrentUser());
+        return userService.getConversationList(getCurrentUser().getId());
     }
 
 
     @GetMapping("/friend-request")
     public ResponseEntity<CommonResponse> getFriendRequest() {
-        return userService.getFriendRequest(getCurrentUser());
+        return userService.getFriendRequest(getCurrentUser().getId());
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<CommonResponse> getNotifications() {
+        return userService.getNotifications(getCurrentUser().getId());
     }
 
     //TODO: change to add friend / accept friend request
     @GetMapping("/friends")
     public ResponseEntity<CommonResponse> getFriends() {
-        return userService.getFriends(getCurrentUser());
+        return userService.getFriends(getCurrentUser().getId());
     }
 
     @PostMapping("/add-friend")
     public ResponseEntity<CommonResponse> addFriend(@RequestParam String otherUserId) {
-        return userService.addFriend(getCurrentUser(), otherUserId);
+        return userService.addFriend(getCurrentUser().getId(), otherUserId);
     }
 
     @PostMapping("/accept-friend")
     public ResponseEntity<CommonResponse> acceptFriend(@RequestParam String requestId) {
-        return userService.acceptFriend(getCurrentUser(), requestId);
+        return userService.acceptFriend(getCurrentUser().getId(), requestId);
+    }
+
+
+    @PostMapping("/see-all-notifications")
+    public ResponseEntity<CommonResponse> seeAllNotifications() {
+        return userService.seeAllNotifications(getCurrentUser().getId());
     }
 
     public User getCurrentUser() {

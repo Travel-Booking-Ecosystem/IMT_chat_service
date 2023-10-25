@@ -1,34 +1,38 @@
 package com.imatalk.chatservice.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.imatalk.chatservice.enums.ConversationStatus;
+import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-@Document(collection = "conversations")
+
+@Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Data
-@ToString(exclude = {"members", "messages"}) // to prevent the call to getMessages() method when toString() is called
+@ToString(exclude = {"members", "messageSeenRecord"})
 public class Conversation {
     @Id
     private String id;
     private LocalDateTime createdAt;
-    @DBRef
+
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "conversations")
     private List<User> members;
 
-    private Message lastMessage; // this is the last message of the conversation used to display in the conversation list
+    @Embedded
+    private LastMessage lastMessage; // this is the last message of the conversation used to display in the conversation list
     private LocalDateTime lastUpdatedAt; // this field is used to sort the conversation list when user opens the app
-    @DBRef
-    private List<Message> messages;
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    public List<MessageSeen> messageSeenRecord;
+
+    @Enumerated(EnumType.STRING)
+    public ConversationStatus status;
+
+    @Transient
     private Map<String, Long> seenMessageTracker; // track each user's last seen message number in this conversation
 
     // it to be false by default if it is not set
@@ -36,16 +40,24 @@ public class Conversation {
     private String groupName;
     private String groupAvatar;
 
-    // make this method private to prevent it from being exposed to the outside
-    // when this method is called, the messages field will be populated by retrieving messages from the database
-    // this is done by spring data mongodb and doing it can be expensive and unoptimized!
-    // the messages should only be fetched using its own repository
-    @JsonIgnore
-    private List<Message> getMessages() {
-        if (messages == null) {
-            messages = new ArrayList<>();
+
+    @Embeddable
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    @Data
+    public static class LastMessage {
+        private String lastMessageId;
+        private String lastMessageContent;
+        private Long lastMessageNo; // an incremental number for each message in the conversation it belongs to
+        private LocalDateTime lastMessageCreatedAt;
+
+        public LastMessage(Message message, long lastMessageNo) {
+            this.lastMessageId = message.getId();
+            this.lastMessageContent = message.getContent();
+            this.lastMessageCreatedAt = message.getCreatedAt();
+            this.lastMessageNo = lastMessageNo;
         }
-        return messages;
     }
 
     public List<User> getMembers() {
@@ -56,8 +68,12 @@ public class Conversation {
     }
 
     public Map<String, Long> getSeenMessageTracker() {
-        if (seenMessageTracker == null) {
+        if (seenMessageTracker == null || messageSeenRecord == null) {
             seenMessageTracker = new HashMap<>();
+
+            for (MessageSeen messageSeen : messageSeenRecord) {
+                seenMessageTracker.put(messageSeen.getUserId(), messageSeen.getLastSeenMessageNo());
+            }
         }
         return seenMessageTracker;
     }
@@ -73,37 +89,33 @@ public class Conversation {
         return map;
     }
 
-
-    public void addMessage(Message message) {
-        // set messageNo to be the next number in the sequence
-        long lastMessageNo = lastMessage != null ? lastMessage.getMessageNo() : 0L;
-        long newMessageNo = lastMessageNo + 1;
-        messages.add(message);
-
-        // update the seen message number for the sender of the message
-        for (User member : members) {
-            // if the user is the sender of the message, set the seen message number to be the message number of the message
-            // otherwise, set the seen message number to be the last seen message number of the user
-            long seenMessageNo = member.getId().equals(message.getSenderId()) ? newMessageNo : seenMessageTracker.getOrDefault(member.getId(), 0L);
-            seenMessageTracker.put(member.getId(), seenMessageNo);
-
+    public LocalDateTime getLastUpdatedAt() {
+        if (lastUpdatedAt == null) {
+            lastUpdatedAt = createdAt;
         }
-
-        this.lastMessage = message;
-        lastUpdatedAt = message.getCreatedAt();
+        return lastUpdatedAt;
     }
+
+
 
 
     public Long getLastSeenMessageNoOfMember(String memberId) {
-        return seenMessageTracker.getOrDefault(memberId, 0L);
+        return getSeenMessageTracker().getOrDefault(memberId, 0L);
     }
 
-    public void updateUserSeenLatestMessage(User currentUser) {
-        long lastMessageNo = lastMessage != null ? lastMessage.getMessageNo() : 0L;
-        seenMessageTracker.put(currentUser.getId(), lastMessageNo);
+    public void updateUserSeenLatestMessage(String currentUserId) {
+
+    }
+
+    public List<MessageSeen> getMessageSeenRecord() {
+        if (messageSeenRecord == null) {
+            messageSeenRecord = new ArrayList<>();
+        }
+
+        return messageSeenRecord;
     }
 
     public long getLastMessageNo() {
-        return lastMessage != null ? lastMessage.getMessageNo() : 0L;
+        return lastMessage != null ? lastMessage.getLastMessageNo() : 0L;
     }
 }

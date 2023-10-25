@@ -1,4 +1,4 @@
-package com.imatalk.chatservice.repository;
+package com.imatalk.chatservice.mongoRepository;
 
 import com.imatalk.chatservice.entity.Message;
 import org.springframework.data.mongodb.repository.MongoRepository;

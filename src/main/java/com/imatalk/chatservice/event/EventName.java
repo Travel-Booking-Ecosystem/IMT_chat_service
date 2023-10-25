@@ -9,6 +9,7 @@ public enum EventName {
     // for event type FRIEND
     NEW_FRIEND_REQUEST,
 
+    NEW_FRIEND,
     // for event type NOTIFICATION
     FRIEND_REQUEST_ACCEPTED,
 
