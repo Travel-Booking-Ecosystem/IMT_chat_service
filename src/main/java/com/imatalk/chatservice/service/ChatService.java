@@ -3,67 +3,75 @@ package com.imatalk.chatservice.service;
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.response.*;
-import com.imatalk.chatservice.entity.Conversation;
-import com.imatalk.chatservice.entity.Message;
-import com.imatalk.chatservice.entity.Notification;
-import com.imatalk.chatservice.entity.User;
-import com.imatalk.chatservice.event.Event;
-import com.imatalk.chatservice.event.EventName;
+import com.imatalk.chatservice.dto.response.ConversationChatHistoryDTO.MessageDTO;
+import com.imatalk.chatservice.entity.*;
+import com.imatalk.chatservice.event.FriendRequestAcceptedEvent;
+import com.imatalk.chatservice.event.NewRegisteredUserEvent;
 import com.imatalk.chatservice.exception.ApplicationException;
+import com.imatalk.chatservice.mongoRepository.ChatUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
-import static com.imatalk.chatservice.dto.response.ConversationChatHistoryDTO.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChatService {
     // TODO: create Notification Service to send WS messages to the client
-    private final SimpMessagingTemplate messagingTemplate;
     @Value("${USER_TOPIC}")
     private String USER_TOPIC;
 
-
-    private final UserService userService;
     private final ConversationService conversationService;
     private final MessageService messageService;
+    private final ChatUserRepository chatUserRepository;
+    private final KafkaProducerService kafkaProducerService;
 
 
+    public void createDirectConversation(FriendRequestAcceptedEvent event) {
+        String receiverId = event.getReceiverId();
+        String senderId = event.getSender().getId();
 
-    public ResponseEntity<CommonResponse> createDirectConversation(String currentUserId, String otherUserId) {
-        User currentUser = userService.getUserById(currentUserId);
-        User otherUser = userService.getUserById(otherUserId);
+        System.out.println("RECEIVER ID: " + receiverId);
+        System.out.println("SENDER ID: " + senderId);
+
+
+        ChatUser receiver = getChatUserById(receiverId);
+        ChatUser sender = getChatUserById(senderId);
+
+        System.out.println("RECEIVER DATA: ");
+        System.out.println(receiver);
+        System.out.println("SENDER DATA: ");
+        System.out.println(sender);
 
         // check if conversation already exists
-        boolean conversationExists = conversationService.checkIfConversationExistsBetween2Users(currentUser, otherUser);
+        boolean conversationExists = conversationService.checkIfConversationExistsBetween2Users(receiver, sender);
         if (conversationExists) {
             throw new ApplicationException("Conversation already exists");
         }
 
         // create conversation
-        List<User> members = List.of(currentUser, otherUser);
-        Conversation directConversation = conversationService.createAndSaveConversationBetween2Users(currentUser, otherUser);
+        List<ChatUser> members = List.of(receiver, sender);
 
-        // add conversation to each member's conversation list
-        for (User member : members) {
-            member.joinConversation(directConversation);
+
+        Conversation directConversation = conversationService.createAndSaveConversationBetween2Users(List.of(receiver, sender));
+
+        // produce NEW_CONVERSATION event for each user
+        for (ChatUser member : members) {
+            kafkaProducerService.sendNewConversationEvent(new ConversationInfoDTO(directConversation, member), member.getId());
         }
-        userService.saveAll(members);
-
-        return ResponseEntity.ok(CommonResponse.success("Conversation created"));
-
 
     }
 
+    private ChatUser getChatUserById(String receiverId) {
+        return chatUserRepository.findById(receiverId).orElseThrow(() -> new ApplicationException("User not found"));
+    }
+
     public ResponseEntity<CommonResponse> sendMessage(String currentUserId, SendMessageRequest request) {
-        User currentUser = userService.getUserById(currentUserId);
+        ChatUser currentUser = getChatUserById(currentUserId);
         System.out.println("User id: " + currentUser.getId());
         System.out.println("Conversation id: " + request.getConversationId());
         System.out.println("Message content: " + request.getContent());
@@ -83,43 +91,28 @@ public class ChatService {
         }
     }
 
-    private SendMessageResponse addMessageToConversation(User currentUser, SendMessageRequest request, Conversation directConversation) {
+    private SendMessageResponse addMessageToConversation(ChatUser currentUser, SendMessageRequest request, Conversation directConversation) {
 
         Message message = messageService.createAndSaveMessage(currentUser, request, directConversation);
-
-        //TODO: create MessageSender class to send message to the client
-        // send the message to the client using websocket after saving the message to the database
-//        messagingTemplate.convertAndSend(USER_TOPIC + "/" + request.getConversationId(), message);
-
-        //TODO: please create another service using Kafka to deal with notification
-        // send notification to the other user in the conversation
-        // extract new method for this
-
         // update the conversation
         conversationService.addMessageAndSaveConversation(directConversation, message);
-        for (User member : directConversation.getMembers()) {
-//            if (!member.getId().equals(currentUser.getId())) {
-            Event event = new Event();
-            event.setUserId(member.getId());
-            event.setName(EventName.NEW_MESSAGE);
-            event.setPayload(message);
-            messagingTemplate.convertAndSend(USER_TOPIC + "/" + member.getId(), event);
-        }
+        kafkaProducerService.sendNewMessageEvent(new MessageDTO(message), directConversation.getMemberIds());
+
         // when user sends a message, set the current conversation to be the conversation that the user is sending message to
         currentUser.setCurrentConversationId(directConversation.getId());
 
-        userService.save(currentUser);
+        chatUserRepository.save(currentUser);
 
         return new SendMessageResponse(true, message.getCreatedAt());
     }
 
-    private boolean checkUserInConversation(Conversation directConversation, User currentUser) {
+    private boolean checkUserInConversation(Conversation directConversation, ChatUser currentUser) {
         return directConversation.getMembers().stream()
                 .anyMatch(user -> user.getId().equals(currentUser.getId()));
     }
 
     public ResponseEntity<CommonResponse> getConversationChatHistory(String currentUserId, String conversationId, long messageNo) {
-        User currentUser = userService.getUserById(currentUserId);
+        ChatUser currentUser = getChatUserById(currentUserId);
         //TODO: update the seen message number for the user when get messages in the conversation
         Conversation directConversation = conversationService.getConversationById(conversationId);
 
@@ -132,7 +125,7 @@ public class ChatService {
 
         // set the conversation to be the current conversation of the user
         currentUser.setCurrentConversationId(conversationId);
-        userService.save(currentUser);
+        chatUserRepository.save(currentUser);
 
         // when user gets messages, set the seen message number of the user to be the last message number of the conversation
         //TODO: use kafka to send notification to the other user when this seen the message
@@ -142,7 +135,7 @@ public class ChatService {
 
     }
 
-    private ConversationChatHistoryDTO convertToDirectConversationDetailDTO(Conversation conversation, List<Message> messages, User currentUser) {
+    private ConversationChatHistoryDTO convertToDirectConversationDetailDTO(Conversation conversation, List<Message> messages, ChatUser currentUser) {
 
         return new ConversationChatHistoryDTO(conversation, currentUser, messages);
     }
@@ -151,10 +144,8 @@ public class ChatService {
 
     public ResponseEntity<CommonResponse> createGroupConversation(String currentUserId, CreateGroupConversationRequest request) {
 
-        User currentUser = userService.getUserById(currentUserId);
-        // TODO: you need to check if group name is null or empty
-        log.info("Group name: " + request.getGroupName());
-        log.info("Member ids: " + request.getMemberIds());
+//        User currentUser = userService.getUserById(currentUserId);
+        ChatUser currentUser = getChatUserById(currentUserId);
 
         String groupName = request.getGroupName();
         List<String> memberIds = request.getMemberIds();
@@ -164,32 +155,25 @@ public class ChatService {
             memberIds.add(currentUser.getId());
         }
 
-        List<User> members = userService.findAllByIds(memberIds);
+        List<ChatUser> members = chatUserRepository.findAllById(memberIds);
 
         Conversation conversation = conversationService.createAndSaveGroupConversation(groupName, members);
 
-        // join users to the conversation
-        for (User member : members) {
-            member.joinConversation(conversation);
-        }
-        userService.saveAll(members);
-
-        for (User member : members) {
+        for (ChatUser member : conversation.getMembers()) {
             // send notification to each member
-            Event event = Event.builder()
-                    .userId(member.getId())
-                    .name(EventName.NEW_CONVERSATION)
-                    .payload(new ConversationInfoDTO(conversation, currentUser))
-                    .build();
-            messagingTemplate.convertAndSend(USER_TOPIC + "/" + member.getId(), event);
+            kafkaProducerService.sendNewConversationEvent(new ConversationInfoDTO(conversation, member), member.getId());
+
         }
         return ResponseEntity.ok(CommonResponse.success("Group conversation created"));
     }
 
 
     public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(String currentUserId, String otherUserId) {
-        User currentUser = userService.getUserById(currentUserId);
-        User otherUser = userService.getUserById(otherUserId);
+
+        ChatUser currentUser = getChatUserById(currentUserId);
+        ChatUser otherUser = getChatUserById(otherUserId);
+
+
         Conversation conversation = conversationService.getConversationBetween2Users(currentUser, otherUser);
 
         CommonResponse commonResponse = null;
@@ -200,5 +184,42 @@ public class ChatService {
         }
 
         return ResponseEntity.ok(commonResponse);
+    }
+
+    public ResponseEntity<CommonResponse> getConversationList(String currentUserId) {
+
+        ChatUser currentUser = getChatUserById(currentUserId);
+        log.info("Current user: " + currentUser);
+            List<Conversation> conversations = conversationService.getConversationListOrderByLastUpdateAtDesc(currentUser);
+        List<ConversationInfoDTO> conversationInfoDTOList = new ArrayList<>();
+
+        for (Conversation conversation : conversations) {
+            ConversationInfoDTO conversationInfoDTO = new ConversationInfoDTO(conversation, currentUser);
+            conversationInfoDTOList.add(conversationInfoDTO);
+        }
+
+        ConversationListDTO dto = new ConversationListDTO();
+        dto.setConversations(conversationInfoDTOList);
+        dto.setCurrentConversationId(currentUser.getCurrentConversationId());
+        return ResponseEntity.ok(CommonResponse.success("Conversation list retrieved", dto));
+    }
+
+    public void createChatUser(NewRegisteredUserEvent event) {
+
+        ChatUser chatUser = ChatUser.builder()
+                .currentConversationId(null)
+                .displayName(event.getDisplayName())
+                .username(event.getUsername())
+                .avatar(event.getAvatar())
+                .id(event.getUserId())
+                .build();
+
+        chatUserRepository.save(chatUser);
+    }
+
+    public ResponseEntity<CommonResponse> test(String id) {
+        ChatUser chatUser = chatUserRepository.findById(id).orElse(null);
+        return ResponseEntity.ok(CommonResponse.success("User found", chatUser));
+
     }
 }

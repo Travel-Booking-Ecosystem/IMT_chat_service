@@ -1,8 +1,8 @@
 package com.imatalk.chatservice.dto.response;
 
+import com.imatalk.chatservice.entity.ChatUser;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
-import com.imatalk.chatservice.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,7 +23,8 @@ public class ConversationChatHistoryDTO {
     private Map<String, MessageDTO> messageMap; // map of messages for fast retrieval, key is the message id, value is the message
     private List<MessageDTO> messageList; // list of messages in the conversation
 
-    public ConversationChatHistoryDTO(Conversation conversation, User currentUser, List<Message> messages) {
+    //TODO: move this data to service layer
+    public ConversationChatHistoryDTO(Conversation conversation, ChatUser currentUser, List<Message> messages) {
         this.conversationId = conversation.getId();
 
         if (conversation.isGroupConversation()) {
@@ -31,7 +32,7 @@ public class ConversationChatHistoryDTO {
             this.conversationAvatar = conversation.getGroupAvatar();
         } else {
             // if the conversation is not a group conversation, then it is a direct conversation, and there are only 2 members in the conversation
-            User otherUser =  getTheOtherUserInConversation(currentUser, conversation);
+            ChatUser otherUser =  getTheOtherUserInConversation(currentUser, conversation);
             this.conversationName = otherUser.getDisplayName();
             this.conversationAvatar = otherUser.getAvatar();
         }
@@ -43,7 +44,7 @@ public class ConversationChatHistoryDTO {
     }
     private Map<String, MemberDTO> convertMemberListToMap(Conversation conversation) {
         Map<String, MemberDTO> map = new HashMap<>();
-        for (User member : conversation.getMembers()) {
+        for (ChatUser member : conversation.getMembers()) {
             MemberDTO otherUser = new MemberDTO(member);
             MemberDTO.LastSeen lastSeen = new MemberDTO.LastSeen(conversation.getLastSeenMessageNoOfMember(member.getId()));
             otherUser.setLastSeen(lastSeen);
@@ -63,11 +64,11 @@ public class ConversationChatHistoryDTO {
         return map;
     }
 
-    public  User getTheOtherUserInConversation(User user, Conversation conversation) {
+    public  ChatUser getTheOtherUserInConversation(ChatUser user, Conversation conversation) {
 
         // there can be only 2 members in a direct conversation
         // find the other user in the conversation
-        User otherUser = conversation.getMembers().get(0);
+        ChatUser otherUser = conversation.getMembers().get(0);
         // if the first member is the current user, then the other user is the second member
         if (otherUser.getId().equals(user.getId())) {
             otherUser = conversation.getMembers().get(1);
@@ -81,15 +82,14 @@ public class ConversationChatHistoryDTO {
     public static class MemberDTO {
         private String id;
         private String displayName;
-        private String username;
+//        private String username;
         private String avatar;
         private LastSeen lastSeen; // this is the last message seen by the user in the conversation
 
-        public MemberDTO(User user) {
-            this.id = user.getId();
-            this.displayName = user.getDisplayName();
-            this.username = user.getUsername();
-            this.avatar = user.getAvatar();
+        public MemberDTO(ChatUser member) {
+            this.id = member.getId();
+            this.displayName = member.getDisplayName();
+            this.avatar = member.getAvatar();
         }
 
 
@@ -110,6 +110,7 @@ public class ConversationChatHistoryDTO {
         private String senderId;
         private String content;
 //        private String type;
+        private String conversationId;
         private String createdAt;
         private long messageNo;
 
@@ -119,6 +120,7 @@ public class ConversationChatHistoryDTO {
             this.id = message.getId();
             this.senderId = message.getSenderId();
             this.content = message.getContent();
+            this.conversationId = message.getConversationId();
             this.createdAt = message.getCreatedAt().toString();
             this.messageNo = message.getMessageNo();
             this.repliedMessageId = message.getRepliedMessageId();

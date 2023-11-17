@@ -1,4 +1,4 @@
-package com.imatalk.authservice.event;
+package com.imatalk.chatservice.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

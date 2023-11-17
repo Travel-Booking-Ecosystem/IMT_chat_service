@@ -1,9 +1,9 @@
 package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
+import com.imatalk.chatservice.entity.ChatUser;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
-import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.mongoRepository.MessageRepo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ public class MessageService {
     private final MessageRepo messageRepo;
 
     //TOOD: rename all "directConversation" to "conversation"
-    public Message createAndSaveMessage(User user, SendMessageRequest request, Conversation conversation) {
+    public Message createAndSaveMessage(ChatUser user, SendMessageRequest request, Conversation conversation) {
         // save the message to the database
         Message message = createMessage(user, request);
 
@@ -28,7 +28,7 @@ public class MessageService {
         return messageRepo.save(message);
     }
 
-    private Message createMessage(User currentUser, SendMessageRequest request) {
+    private Message createMessage(ChatUser currentUser, SendMessageRequest request) {
         LocalDateTime now = LocalDateTime.now();
 
         return Message.builder()

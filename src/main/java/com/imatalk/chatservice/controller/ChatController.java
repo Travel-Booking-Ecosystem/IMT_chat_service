@@ -4,14 +4,15 @@ package com.imatalk.chatservice.controller;
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.response.CommonResponse;
-import com.imatalk.chatservice.entity.User;
 import com.imatalk.chatservice.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -26,38 +27,51 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    @GetMapping("/chat-user/{id}")
+    public ResponseEntity<CommonResponse> getChatUserById(@PathVariable String id) {
+        return chatService.test(id);
+    }
+
+
+    @GetMapping("/health")
+    public ResponseEntity<CommonResponse> health() {
+        Map<String, String> map = Map.of(
+                "service", "chat-service",
+                "status", "OK",
+                "time", LocalDateTime.now().toString());
+        return ResponseEntity.ok(CommonResponse.success("Health check",map));
+    }
 
     //TODO: you need to add an api to send message to user (when the conversation is not created yet)
-    @PostMapping("/create-direct-conversation")
-    public ResponseEntity<CommonResponse> createDirectConversation(@RequestParam String otherUserId) {
-        return chatService.createDirectConversation(getCurrentUser().getId(), otherUserId);
-    }
+//    @PostMapping("/create-direct-conversation")
+//    public ResponseEntity<CommonResponse> createDirectConversation(@RequestHeader String currentUserId, @RequestParam String otherUserId) {
+//        return chatService.createDirectConversation(currentUserId, otherUserId);
+//    }
 
     @PostMapping("/create-group-conversation")
-    public ResponseEntity<CommonResponse> createGroupConversation(@RequestBody CreateGroupConversationRequest request) {
-        return chatService.createGroupConversation(getCurrentUser().getId(), request);
+    public ResponseEntity<CommonResponse> createGroupConversation(@RequestHeader String currentUserId, @RequestBody CreateGroupConversationRequest request) {
+        return chatService.createGroupConversation(currentUserId, request);
     }
 
-    @GetMapping("/conversation-info-with-other-user/{otherUserId}")
-    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(@PathVariable String otherUserId) {
-        return chatService.getConversationIdWithOtherUser(getCurrentUser().getId(), otherUserId);
+    @GetMapping("/find-conversation-with/{otherUserId}")
+    public ResponseEntity<CommonResponse> getConversationIdWithOtherUser(@RequestHeader String currentUserId, @PathVariable String otherUserId) {
+        return chatService.getConversationIdWithOtherUser(currentUserId, otherUserId);
+    }
+    @GetMapping("/conversation-list")
+    public ResponseEntity<CommonResponse> getSidebar(@RequestHeader String currentUserId) {
+        return chatService.getConversationList(currentUserId);
     }
 
-    // TODO: change to get send direct message
-    //TODO: change to send message to conversation
+
     @PostMapping("/send-message")
-    public ResponseEntity<CommonResponse> sendMessages(@RequestBody SendMessageRequest request) {
-        return chatService.sendMessage(getCurrentUser().getId(), request);
+    public ResponseEntity<CommonResponse> sendMessages(@RequestHeader String currentUserId, @RequestBody SendMessageRequest request) {
+        return chatService.sendMessage(currentUserId, request);
     }
 
     @GetMapping("/conversation-chat-history")
-    public ResponseEntity<CommonResponse> getChatHistory(@RequestParam String conversationId,
+    public ResponseEntity<CommonResponse> getChatHistory(@RequestHeader String currentUserId, @RequestParam String conversationId,
                                                          @RequestParam(defaultValue = "-1") int messageNo) {
-        return chatService.getConversationChatHistory(getCurrentUser().getId(), conversationId, messageNo);
-    }
-
-    public User getCurrentUser() {
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return chatService.getConversationChatHistory(currentUserId, conversationId, messageNo);
     }
 
 //    @MessageMapping("/message")
