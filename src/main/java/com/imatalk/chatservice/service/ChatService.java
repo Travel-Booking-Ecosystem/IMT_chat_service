@@ -32,8 +32,8 @@ public class ChatService {
 
 
     public void createDirectConversation(FriendRequestAcceptedEvent event) {
-        String receiverId = event.getReceiverId();
-        String senderId = event.getSender().getId();
+        String receiverId = event.getReceiver().getId();
+        String senderId = event.getSenderId();
 
         System.out.println("RECEIVER ID: " + receiverId);
         System.out.println("SENDER ID: " + senderId);

@@ -15,12 +15,15 @@ import java.time.LocalDateTime;
 public class FriendRequestAcceptedEvent {
     //TODO: implement this class
     private String requestId;
-    private String receiverId;
+    private String senderId;
     private LocalDateTime acceptedAt;
-    private Sender sender;
+    private Receiver receiver;
 
     @Data
-    public static class Sender {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class Receiver {
         private String id;
         private String username;
         private String displayName;

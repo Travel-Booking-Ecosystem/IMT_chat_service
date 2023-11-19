@@ -38,6 +38,7 @@ public class Conversation {
     private ConversationSetting conversationSetting;
 
 
+
     // it to be false by default if it is not set
     private boolean isGroupConversation = false;
     private String groupName;
@@ -51,11 +52,21 @@ public class Conversation {
         return status;
     }
 
+
+
+    public Map<String, String> getNicknameMap() {
+        if (nicknameMap == null) {
+            nicknameMap = new HashMap<String, String>();
+        }
+        return nicknameMap;
+    }
+
+
     @AllArgsConstructor
     @NoArgsConstructor
     @Builder
     @Data
-    public class ConversationSetting {
+    public static class ConversationSetting {
         private String chatColor;
         private String chatWallpaper;
         private ConversationEmoji defaultEmoji;

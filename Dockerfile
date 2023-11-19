@@ -12,7 +12,7 @@ USER spring:spring
 # Copy the jar file from the build stage to the working directory
 COPY target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8102
 
 # Run the jar file
 ENTRYPOINT ["java","-jar","app.jar"]
