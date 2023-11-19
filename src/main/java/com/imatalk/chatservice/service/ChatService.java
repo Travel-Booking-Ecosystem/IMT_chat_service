@@ -91,19 +91,32 @@ public class ChatService {
         }
     }
 
-    private SendMessageResponse addMessageToConversation(ChatUser currentUser, SendMessageRequest request, Conversation directConversation) {
+    private SendMessageResponse addMessageToConversation(ChatUser currentUser, SendMessageRequest request, Conversation conversation) {
 
-        Message message = messageService.createAndSaveMessage(currentUser, request, directConversation);
+        Message message = messageService.createAndSaveMessage(currentUser, request, conversation);
         // update the conversation
-        conversationService.addMessageAndSaveConversation(directConversation, message);
-        kafkaProducerService.sendNewMessageEvent(new MessageDTO(message), directConversation.getMemberIds());
+        conversationService.addMessageAndSaveConversation(conversation, message);
+        kafkaProducerService.sendNewMessageEvent(new MessageDTO(message), conversation.getMemberIds());
+
+        // if message replies to another message, send notification to the user who sent the message that is replied
+        if (message.getRepliedMessageId() != null && conversation.isGroupConversation()) {
+            produceGroupMessageRepliedEvent(message, conversation,  currentUser);
+        }
+
 
         // when user sends a message, set the current conversation to be the conversation that the user is sending message to
-        currentUser.setCurrentConversationId(directConversation.getId());
+        currentUser.setCurrentConversationId(conversation.getId());
 
         chatUserRepository.save(currentUser);
 
         return new SendMessageResponse(true, message.getCreatedAt());
+    }
+
+    private void produceGroupMessageRepliedEvent(Message message, Conversation conversation, ChatUser currentUser) {
+
+        Message repliedMessage = messageService.findMessageById(message.getRepliedMessageId());
+        kafkaProducerService.sendGroupMessageRepliedEvent(repliedMessage, conversation, currentUser);
+
     }
 
     private boolean checkUserInConversation(Conversation directConversation, ChatUser currentUser) {

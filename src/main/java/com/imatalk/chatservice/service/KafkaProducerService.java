@@ -1,6 +1,10 @@
 package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.response.*;
+import com.imatalk.chatservice.entity.ChatUser;
+import com.imatalk.chatservice.entity.Conversation;
+import com.imatalk.chatservice.entity.Message;
+import com.imatalk.chatservice.event.GroupMessageRepliedEvent;
 import com.imatalk.chatservice.event.NewConversationEvent;
 import com.imatalk.chatservice.event.NewMessageEvent;
 import lombok.RequiredArgsConstructor;
@@ -129,5 +133,40 @@ public class KafkaProducerService {
                 .build();
 
         kafkaTemplate.send(NEW_MESSAGE_TOPIC, newMessageEvent);
+    }
+
+    public void sendGroupMessageRepliedEvent(Message repliedMessage, Conversation conversation, ChatUser replier) {
+
+
+
+        GroupMessageRepliedEvent.RepliedMessage message = GroupMessageRepliedEvent.RepliedMessage.builder()
+                .id(repliedMessage.getId())
+                .senderId(repliedMessage.getSenderId())
+                .content(repliedMessage.getContent())
+                .createdAt(repliedMessage.getCreatedAt())
+                .conversationId(repliedMessage.getConversationId())
+                .messageNo(repliedMessage.getMessageNo())
+                .build();
+
+        GroupMessageRepliedEvent.Conversation conversationInfo = GroupMessageRepliedEvent.Conversation.builder()
+                .id(conversation.getId())
+                .name(conversation.getGroupName())
+                .avatar(conversation.getGroupAvatar())
+                .build();
+
+        GroupMessageRepliedEvent.Replier replierInfo = GroupMessageRepliedEvent.Replier.builder()
+                .id(replier.getId())
+                .username(replier.getUsername())
+                .displayName(replier.getDisplayName())
+                .avatar(replier.getAvatar())
+                .build();
+
+        GroupMessageRepliedEvent groupMessageRepliedEvent = GroupMessageRepliedEvent.builder()
+                .conversation(conversationInfo)
+                .message(message)
+                .replier(replierInfo)
+                .build();
+
+        kafkaTemplate.send(GROUP_REPLIED_MESSAGE_TOPIC, groupMessageRepliedEvent);
     }
 }

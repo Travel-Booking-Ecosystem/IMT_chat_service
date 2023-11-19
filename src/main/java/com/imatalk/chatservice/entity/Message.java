@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Document(collection = "messages")
 @AllArgsConstructor
@@ -29,7 +31,14 @@ public class Message {
     private LocalDateTime createdAt;
     private String repliedMessageId; // this is null if the message is not a reply to another message
 
+    private Map<String, List<Reactor>> reactionTracker; // list of user ids who reacted to this message
     //TODO: should there be a system message when a user joins a conversation, leaves a conversation, or is added to a conversation, reacts to a message, etc.?
+
+    public static class Reactor {
+        private String memberId;
+        private LocalDateTime reactedAt;
+    }
+
     public boolean isSent() {
         return id != null; // if the message has an id, it means it is stored in the database
     }

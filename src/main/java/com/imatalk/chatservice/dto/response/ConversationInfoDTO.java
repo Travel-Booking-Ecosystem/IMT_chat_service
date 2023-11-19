@@ -32,7 +32,11 @@ public class ConversationInfoDTO {
             // if the conversation is not a group conversation, then it is a direct conversation, and there are only 2 members in the conversation
             ChatUser otherUser = getTheOtherUserInConversation(currentUser, conversation);
             // for the current user, the conversation name and avatar are the other user's username and avatar,
-            this.name = otherUser.getDisplayName();
+
+            // if there is a nickname for the other user in this conversation, use the nickname otherwise use the display name
+            String conversationName = conversation.getNicknameMap().getOrDefault(otherUser.getId(), otherUser.getDisplayName());
+
+            this.name = conversationName;
             this.avatar = otherUser.getAvatar();
         }
 

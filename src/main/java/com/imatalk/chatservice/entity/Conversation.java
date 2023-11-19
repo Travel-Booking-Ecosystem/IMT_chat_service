@@ -1,5 +1,6 @@
 package com.imatalk.chatservice.entity;
 
+import com.imatalk.chatservice.enums.ConversationEmoji;
 import com.imatalk.chatservice.enums.ConversationStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,6 +32,12 @@ public class Conversation {
 
     private Map<String, Long> seenMessageTracker = new HashMap<String, Long>(); // track each user's last seen message number in this conversation
 
+
+    private Map<String, String> nicknameMap = new HashMap<String, String>(); // map from user id to nickname in this conversation
+
+    private ConversationSetting conversationSetting;
+
+
     // it to be false by default if it is not set
     private boolean isGroupConversation = false;
     private String groupName;
@@ -43,6 +50,17 @@ public class Conversation {
 
         return status;
     }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    @Data
+    public class ConversationSetting {
+        private String chatColor;
+        private String chatWallpaper;
+        private ConversationEmoji defaultEmoji;
+    }
+
 
     @AllArgsConstructor
     @NoArgsConstructor

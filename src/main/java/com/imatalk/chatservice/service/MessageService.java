@@ -39,6 +39,10 @@ public class MessageService {
                 .build();
     }
 
+    public Message findMessageById(String messageId) {
+        return messageRepo.findById(messageId).orElseThrow(() -> new RuntimeException("Message not found for id " + messageId));
+    }
+
     public List<Message> findAllByIds(List<String> messageIds) {
         return messageRepo.findAllById(messageIds);
     }
