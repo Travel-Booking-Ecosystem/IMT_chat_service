@@ -2,6 +2,7 @@ package com.imatalk.chatservice.controller;
 
 
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
+import com.imatalk.chatservice.dto.request.ReactMessageRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
 import com.imatalk.chatservice.dto.response.CommonResponse;
@@ -100,8 +101,10 @@ public class ChatController {
         return message;
     }
 
-
-
+    @PostMapping("/react-message")
+    public ResponseEntity<CommonResponse> reactMessage(@RequestHeader String currentUserId, @RequestBody ReactMessageRequest request) {
+        return chatService.reactMessage(currentUserId, request);
+    }
 
 //    @PostMapping("/test")
 //    public ResponseEntity<CommonResponse> test(@RequestBody SendMessageRequest request) {

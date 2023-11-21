@@ -7,6 +7,7 @@ import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.event.GroupMessageRepliedEvent;
 import com.imatalk.chatservice.event.NewConversationEvent;
 import com.imatalk.chatservice.event.NewMessageEvent;
+import com.imatalk.chatservice.event.NewMessageReactionEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -29,6 +30,8 @@ public class KafkaProducerService {
     @Value("${topic.group-message-replied}")
     private String GROUP_REPLIED_MESSAGE_TOPIC;
 
+    @Value("${topic.new-message-reaction}")
+    private String NEW_MESSAGE_REACTION_TOPIC;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -96,6 +99,35 @@ public class KafkaProducerService {
                 .build();
 
         kafkaTemplate.send(NEW_MESSAGE_TOPIC, newMessageEvent);
+    }
+
+    public void sendReactionMessageEvent(Message message, ConversationInfoDTO conversation, ChatUser reactor, List<String> memberIds, boolean isUnreact) {
+        NewMessageReactionEvent.Conversation conversationDTO = NewMessageReactionEvent.Conversation.builder()
+                .conversationId(message.getConversationId())
+                .conversationName(conversation.getName())
+                .conversationAvatar(conversation.getAvatar())
+                .build();
+        NewMessageReactionEvent.ReactionInformation reactionInformation = NewMessageReactionEvent.ReactionInformation.builder()
+                .reactorId(reactor.getId())
+                .reactorName(reactor.getDisplayName())
+                .reaction(isUnreact ? null : message.getReactionTracker().get(reactor.getId()).getReaction())
+                .reactedAt(isUnreact ? null : message.getReactionTracker().get(reactor.getId()).getReactedAt())
+                .build();
+
+        NewMessageReactionEvent.MessageReactionDTO messageReactionResponse = NewMessageReactionEvent.MessageReactionDTO.builder()
+                .messageId(message.getId())
+                .messageOwnerId(message.getSenderId())
+                .conversation(conversationDTO)
+                .reactionInformation(reactionInformation)
+                .unReact(isUnreact)
+                .build();
+
+        NewMessageReactionEvent newMessageReactionEvent = NewMessageReactionEvent.builder()
+                .conversationMemberIds(memberIds)
+                .messageReaction(messageReactionResponse)
+                .build();
+
+        kafkaTemplate.send(NEW_MESSAGE_REACTION_TOPIC, newMessageReactionEvent);
     }
 
     public void sendGroupMessageRepliedEvent(Message repliedMessage, Conversation conversation, ChatUser replier) {

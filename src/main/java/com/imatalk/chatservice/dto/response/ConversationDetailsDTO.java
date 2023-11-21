@@ -118,7 +118,7 @@ public class ConversationDetailsDTO {
 
     }
 
-    public  ChatUser getTheOtherUserInConversation(ChatUser user, Conversation conversation) {
+    public ChatUser getTheOtherUserInConversation(ChatUser user, Conversation conversation) {
 
         // there can be only 2 members in a direct conversation
         // find the other user in the conversation

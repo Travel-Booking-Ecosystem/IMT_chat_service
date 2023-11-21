@@ -1,11 +1,13 @@
 package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
+import com.imatalk.chatservice.dto.request.ReactMessageRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
 import com.imatalk.chatservice.dto.response.*;
 import com.imatalk.chatservice.dto.response.ConversationDetailsDTO.MessageDTO;
 import com.imatalk.chatservice.entity.*;
+import com.imatalk.chatservice.enums.MessageReaction;
 import com.imatalk.chatservice.event.FriendRequestAcceptedEvent;
 import com.imatalk.chatservice.event.NewRegisteredUserEvent;
 import com.imatalk.chatservice.exception.ApplicationException;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -256,5 +259,47 @@ public class ChatService {
 
 
         return conversationService.updateConversationSetting(conversation, request);
+    }
+
+    public ResponseEntity<CommonResponse> reactMessage(String currentUserId, ReactMessageRequest request) {
+        if (request.getReactorId() == null) {
+            request.setReactorId(currentUserId);
+        }
+
+        ChatUser currentUser = getChatUserById(currentUserId);
+        String conversationId = request.getConversationId();
+        Conversation conversation = conversationService.getConversationById(conversationId);
+
+        if (!checkUserInConversation(conversation, currentUser)) {
+            throw new ApplicationException("User is not in the conversation");
+        }
+
+        Message message = messageService.findMessageById(request.getMessageId());
+        if (message == null) {
+            throw new ApplicationException("Message not found");
+        }
+
+        if (message.getSenderId().equals(currentUserId)) {
+            throw new ApplicationException("User cannot react to his/her own message");
+        }
+
+        Map<String, Object> response = messageService.reactMessage(message, request);
+        boolean isUnreact = (boolean) response.get("isUnreact");
+        Message reactMessage = (Message) response.get("message");
+
+        if (reactMessage == null) {
+            throw new ApplicationException("Message reaction failed");
+        }
+
+        ConversationInfoDTO conversationInfoDTO = new ConversationInfoDTO(conversation, currentUser);
+        ChatUser reactor = getChatUserById(currentUserId);
+
+        // send react event to the other members in the conversation
+        kafkaProducerService.sendReactionMessageEvent(reactMessage, conversationInfoDTO, reactor, conversation.getMemberIds(), isUnreact);
+        if (isUnreact) {
+            return ResponseEntity.ok(CommonResponse.success("Message unreacted"));
+        } else {
+            return ResponseEntity.ok(CommonResponse.success("Message reacted"));
+        }
     }
 }

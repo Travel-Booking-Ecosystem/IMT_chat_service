@@ -1,16 +1,21 @@
 package com.imatalk.chatservice.service;
 
+import com.imatalk.chatservice.dto.request.ReactMessageRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
 import com.imatalk.chatservice.entity.ChatUser;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.mongoRepository.MessageRepo;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class MessageService {
@@ -46,5 +51,36 @@ public class MessageService {
 
     public List<Message> findAllByIds(List<String> messageIds) {
         return messageRepo.findAllById(messageIds);
+    }
+
+    public Map<String, Object> reactMessage(Message message, ReactMessageRequest request) {
+        boolean isUnreact = false;
+        Map<String, Message.Reactor> reactionTracker = message.getReactionTracker();
+        if (reactionTracker == null) {
+            reactionTracker = new HashMap<>();
+        }
+
+        if (reactionTracker.containsKey(request.getReactorId())) {
+            if (reactionTracker.get(request.getReactorId()).getReaction() == request.getReaction()) {
+                // remove the reaction
+                reactionTracker.remove(request.getReactorId());
+                isUnreact = true;
+            } else {
+                // update the reaction
+                reactionTracker.get(request.getReactorId()).setReaction(request.getReaction());
+                reactionTracker.get(request.getReactorId()).setReactedAt(LocalDateTime.now());
+            }
+        } else {
+            // add the new reaction
+            Message.Reactor reactor = Message.Reactor.builder()
+                    .reaction(request.getReaction())
+                    .reactedAt(LocalDateTime.now())
+                    .build();
+            reactionTracker.put(request.getReactorId(), reactor);
+        }
+
+        message.setReactionTracker(reactionTracker);
+        messageRepo.save(message);
+        return Map.of("isUnreact", isUnreact, "message", message);
     }
 }

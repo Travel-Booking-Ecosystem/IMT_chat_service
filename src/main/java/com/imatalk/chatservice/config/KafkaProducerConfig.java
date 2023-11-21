@@ -41,7 +41,8 @@ public class KafkaProducerConfig {
     @Value("${topic.group-message-replied}")
     private String GROUP_MESSAGE_REPLIED_TOPIC;
 
-
+    @Value("${topic.new-message-reaction}")
+    private String NEW_MESSAGE_REACTION_TOPIC;
 
     //TODO: NEW_FRIEND
 
@@ -85,7 +86,13 @@ public class KafkaProducerConfig {
                 .build();
     }
 
-
+    @Bean
+    public NewTopic newMessageReactionTopic() {
+        return TopicBuilder.name(NEW_MESSAGE_REACTION_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 
     @Bean
     public KafkaTemplate<String, Object> kafkaTemplate() {
@@ -106,7 +113,8 @@ public class KafkaProducerConfig {
         Class[] producedEventClasses = {
                 NewMessageEvent.class,
                 NewConversationEvent.class,
-                GroupMessageRepliedEvent.class
+                GroupMessageRepliedEvent.class,
+                NewMessageReactionEvent.class
         };
 
         String typeMapping = "";
