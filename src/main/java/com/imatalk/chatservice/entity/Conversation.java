@@ -1,6 +1,7 @@
 package com.imatalk.chatservice.entity;
 
-import com.imatalk.chatservice.enums.ConversationEmoji;
+import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
+import com.imatalk.chatservice.enums.DefaultReaction;
 import com.imatalk.chatservice.enums.ConversationStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -67,9 +68,9 @@ public class Conversation {
     @Builder
     @Data
     public static class ConversationSetting {
-        private String chatColor;
-        private String chatWallpaper;
-        private ConversationEmoji defaultEmoji;
+        private String themeColor;
+        private String wallpaper;
+        private DefaultReaction defaultReaction;
     }
 
 

@@ -1,6 +1,7 @@
 package com.imatalk.chatservice.entity;
 
 
+import com.imatalk.chatservice.enums.MessageType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,7 +31,7 @@ public class Message {
     private String conversationId;
     private LocalDateTime createdAt;
     private String repliedMessageId; // this is null if the message is not a reply to another message
-
+    private MessageType messageType;
     private Map<String, List<Reactor>> reactionTracker; // list of user ids who reacted to this message
     //TODO: should there be a system message when a user joins a conversation, leaves a conversation, or is added to a conversation, reacts to a message, etc.?
 
@@ -39,6 +40,13 @@ public class Message {
         private LocalDateTime reactedAt;
     }
 
+
+    public String getMessageType() {
+        if (messageType == null) {
+            return "TEXT";
+        }
+        return messageType.name();
+    }
     public boolean isSent() {
         return id != null; // if the message has an id, it means it is stored in the database
     }

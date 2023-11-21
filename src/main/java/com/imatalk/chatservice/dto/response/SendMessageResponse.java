@@ -13,5 +13,8 @@ import java.time.LocalDateTime;
 @Builder
 public class SendMessageResponse {
     private boolean success;
-    private LocalDateTime sentAt;
+    private String id; // this is the id the message in the database
+    private String tempId; // this is the id that client sent to server (the client will use this id to update the message status)
+    private long messageNo;
+    private LocalDateTime createdAt;
 }

@@ -33,6 +33,7 @@ public class MessageService {
 
         return Message.builder()
                 .senderId(currentUser.getId())
+                .messageType(request.getMessageType())
                 .content(request.getContent())
                 .repliedMessageId(request.getRepliedMessageId())
                 .createdAt(now)

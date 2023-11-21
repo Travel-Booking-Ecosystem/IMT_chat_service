@@ -3,6 +3,7 @@ package com.imatalk.chatservice.controller;
 
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
+import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
 import com.imatalk.chatservice.dto.response.CommonResponse;
 import com.imatalk.chatservice.service.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,10 @@ public class ChatController {
         return chatService.getConversationList(currentUserId);
     }
 
+    @PostMapping("/update-conversation-setting")
+    public ResponseEntity<CommonResponse> updateConversationSetting(@RequestHeader String currentUserId, @RequestBody UpdateConversationSettingRequest request) {
+        return chatService.updateConversationSetting(currentUserId, request);
+    }
 
     @PostMapping("/send-message")
     public ResponseEntity<CommonResponse> sendMessages(@RequestHeader String currentUserId, @RequestBody SendMessageRequest request) {

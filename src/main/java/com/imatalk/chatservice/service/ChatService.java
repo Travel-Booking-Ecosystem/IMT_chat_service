@@ -2,8 +2,9 @@ package com.imatalk.chatservice.service;
 
 import com.imatalk.chatservice.dto.request.CreateGroupConversationRequest;
 import com.imatalk.chatservice.dto.request.SendMessageRequest;
+import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
 import com.imatalk.chatservice.dto.response.*;
-import com.imatalk.chatservice.dto.response.ConversationChatHistoryDTO.MessageDTO;
+import com.imatalk.chatservice.dto.response.ConversationDetailsDTO.MessageDTO;
 import com.imatalk.chatservice.entity.*;
 import com.imatalk.chatservice.event.FriendRequestAcceptedEvent;
 import com.imatalk.chatservice.event.NewRegisteredUserEvent;
@@ -85,7 +86,7 @@ public class ChatService {
         SendMessageResponse response = addMessageToConversation(currentUser, request, directConversation);
 
         if (response.isSuccess()) {
-            return ResponseEntity.ok(CommonResponse.success("Message sent", response));
+            return ResponseEntity.ok(CommonResponse.success("Message sent successfully", response));
         } else {
             return ResponseEntity.ok(CommonResponse.error("Message sent failed"));
         }
@@ -96,20 +97,25 @@ public class ChatService {
         Message message = messageService.createAndSaveMessage(currentUser, request, conversation);
         // update the conversation
         conversationService.addMessageAndSaveConversation(conversation, message);
-        kafkaProducerService.sendNewMessageEvent(new MessageDTO(message), conversation.getMemberIds());
 
         // if message replies to another message, send notification to the user who sent the message that is replied
         if (message.getRepliedMessageId() != null && conversation.isGroupConversation()) {
             produceGroupMessageRepliedEvent(message, conversation,  currentUser);
         }
 
-
+        kafkaProducerService.sendNewMessageEvent(new MessageDTO(message), conversation.getMemberIds());
         // when user sends a message, set the current conversation to be the conversation that the user is sending message to
         currentUser.setCurrentConversationId(conversation.getId());
 
         chatUserRepository.save(currentUser);
 
-        return new SendMessageResponse(true, message.getCreatedAt());
+        return SendMessageResponse.builder()
+                .success(true)
+                .id(message.getId())
+                .tempId(request.getTempId())
+                .messageNo(message.getMessageNo())
+                .createdAt(message.getCreatedAt())
+                .build();
     }
 
     private void produceGroupMessageRepliedEvent(Message message, Conversation conversation, ChatUser currentUser) {
@@ -134,7 +140,7 @@ public class ChatService {
         }
 
         List<Message> messages = conversationService.get100Messages(directConversation, messageNo);
-        ConversationChatHistoryDTO dto = convertToDirectConversationDetailDTO(directConversation, messages, currentUser);
+        ConversationDetailsDTO dto = convertToDirectConversationDetailDTO(directConversation, messages, currentUser);
 
         // set the conversation to be the current conversation of the user
         currentUser.setCurrentConversationId(conversationId);
@@ -148,9 +154,9 @@ public class ChatService {
 
     }
 
-    private ConversationChatHistoryDTO convertToDirectConversationDetailDTO(Conversation conversation, List<Message> messages, ChatUser currentUser) {
+    private ConversationDetailsDTO convertToDirectConversationDetailDTO(Conversation conversation, List<Message> messages, ChatUser currentUser) {
 
-        return new ConversationChatHistoryDTO(conversation, currentUser, messages);
+        return new ConversationDetailsDTO(conversation, currentUser, messages);
     }
 
 
@@ -211,7 +217,7 @@ public class ChatService {
             conversationInfoDTOList.add(conversationInfoDTO);
         }
 
-        ConversationListDTO dto = new ConversationListDTO();
+        LeftSidebarDTO dto = new LeftSidebarDTO();
         dto.setConversations(conversationInfoDTOList);
         dto.setCurrentConversationId(currentUser.getCurrentConversationId());
         return ResponseEntity.ok(CommonResponse.success("Conversation list retrieved", dto));
@@ -234,5 +240,21 @@ public class ChatService {
         ChatUser chatUser = chatUserRepository.findById(id).orElse(null);
         return ResponseEntity.ok(CommonResponse.success("User found", chatUser));
 
+    }
+
+    public ResponseEntity<CommonResponse> updateConversationSetting(String currentUserId, UpdateConversationSettingRequest request) {
+
+        ChatUser currentUser = getChatUserById(currentUserId);
+        String conversationId = request.getConversationId();
+        Conversation conversation = conversationService.getConversationById(conversationId);
+
+        if (!checkUserInConversation(conversation, currentUser)) {
+            throw new ApplicationException("User is not in the conversation");
+        }
+
+
+
+
+        return conversationService.updateConversationSetting(conversation, request);
     }
 }

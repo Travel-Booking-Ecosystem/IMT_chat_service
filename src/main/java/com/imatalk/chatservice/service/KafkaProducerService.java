@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import static com.imatalk.chatservice.dto.response.ConversationChatHistoryDTO.*;
+import static com.imatalk.chatservice.dto.response.ConversationDetailsDTO.*;
 
 @Service
 @RequiredArgsConstructor
@@ -62,66 +62,29 @@ public class KafkaProducerService {
             kafkaTemplate.send(NEW_CONVERSATION_TOPIC, newConversationEvent);
     }
 
-//    public void sendNewFriendRequestEvent(FriendRequestDTO friendRequestDTO, String receiverId) {
-//
-//
-//        // Convert FriendRequestDTO.User to NewFriendRequestEvent.User
-//        UserProfile requestSender = friendRequestDTO.getSender();
-//        NewFriendRequestEvent.User sender = NewFriendRequestEvent.User.builder()
-//                .id(requestSender.getId())
-//                .username(friendRequestDTO.getSender().getUsername())
-//                .displayName(friendRequestDTO.getSender().getDisplayName())
-//                .email(friendRequestDTO.getSender().getEmail())
-//                .avatar(friendRequestDTO.getSender().getAvatar())
-//                .joinAt(friendRequestDTO.getSender().getJoinAt())
-//                .build();
-//
-//
-//        // convert FriendRequestDTO to NewFriendRequestEvent.FriendRequest
-//        NewFriendRequestEvent.FriendRequest friendRequest = NewFriendRequestEvent.FriendRequest.builder()
-//                .id(friendRequestDTO.getId())
-//                .sender(sender)
-//                .createdAt(friendRequestDTO.getCreatedAt())
-//                .isAccepted(friendRequestDTO.isAccepted())
-//                .build();
-//
-//
-//        NewFriendRequestEvent newFriendRequestEvent = NewFriendRequestEvent.builder()
-//                .friendRequest(friendRequest)
-//                .receiverId(receiverId)
-//                .build();
-//
-//        kafkaTemplate.send(newFriendRequestTopic, newFriendRequestEvent);
-//    }
-//
-//    public void sendNewNotification(NotificationDTO notificationDTO) {
-//
-//        // convert NotificationDTO to NewNotificationEvent.Notification
-//        NewNotificationEvent.Notification notification = NewNotificationEvent.Notification.builder()
-//                .id(notificationDTO.getId())
-//                .userId(notificationDTO.getUserId())
-//                .image(notificationDTO.getImage())
-//                .title(notificationDTO.getTitle())
-//                .content(notificationDTO.getContent())
-//                .unread(notificationDTO.isUnread())
-//                .createdAt(notificationDTO.getCreatedAt())
-//                .build();
-//
-//        NewNotificationEvent newNotificationEvent = NewNotificationEvent.builder()
-//                .userId(notificationDTO.getUserId())
-//                .notification(notification)
-//                .build();
-//
-//        kafkaTemplate.send(newNotificationTopic, newNotificationEvent);
-//    }
 
     public void sendNewMessageEvent(MessageDTO messageDTO, List<String> memberIds) {
+
+
+        NewMessageEvent.RepliedMessage repliedMessage = null;
+
+        if (messageDTO.getRepliedMessage() != null) {
+            repliedMessage = NewMessageEvent.RepliedMessage.builder()
+                    .id(messageDTO.getRepliedMessage().getId())
+                    .messageContent(messageDTO.getRepliedMessage().getMessageContent())
+                    .senderName(messageDTO.getRepliedMessage().getSenderName())
+                    .build();
+        }
+
+
+
         // convert MessageDTO to NewMessageEvent.Message
         NewMessageEvent.Message message = NewMessageEvent.Message.builder()
                 .id(messageDTO.getId())
                 .senderId(messageDTO.getSenderId())
-                .repliedMessageId(messageDTO.getRepliedMessageId())
+                .repliedMessage(repliedMessage)
                 .messageNo(messageDTO.getMessageNo())
+                .messageType(messageDTO.getMessageType())
                 .conversationId(messageDTO.getConversationId())
                 .content(messageDTO.getContent())
                 .createdAt(messageDTO.getCreatedAt())

@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ConversationListDTO {
+public class LeftSidebarDTO {
     private String currentConversationId; //TODO: remove this
     private List<ConversationInfoDTO> conversations;
 

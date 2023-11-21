@@ -1,11 +1,13 @@
 package com.imatalk.chatservice.service;
 
 
-import com.imatalk.chatservice.dto.response.UserProfile;
+import com.imatalk.chatservice.dto.request.UpdateConversationSettingRequest;
+import com.imatalk.chatservice.dto.response.CommonResponse;
 import com.imatalk.chatservice.entity.ChatUser;
 import com.imatalk.chatservice.entity.Conversation;
 import com.imatalk.chatservice.entity.Message;
 import com.imatalk.chatservice.enums.ConversationStatus;
+import com.imatalk.chatservice.enums.DefaultReaction;
 import com.imatalk.chatservice.exception.ApplicationException;
 import com.imatalk.chatservice.mongoRepository.ChatUserRepository;
 import com.imatalk.chatservice.mongoRepository.ConversationRepository;
@@ -13,6 +15,7 @@ import com.imatalk.chatservice.mongoRepository.MessageRepo;
 import com.imatalk.chatservice.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -164,5 +167,27 @@ public class ConversationService {
         List<ChatUser> conversationMembers = new ArrayList<>();
         conversationMembers.add(currentUser);
         return conversationRepository.findAllByMembersInOrderByLastUpdatedAtDesc(conversationMembers);
+    }
+
+    public ResponseEntity<CommonResponse> updateConversationSetting(Conversation conversation, UpdateConversationSettingRequest request) {
+        Conversation.ConversationSetting setting = conversation.getConversationSetting();
+
+        if (setting == null) {
+            setting = new Conversation.ConversationSetting();
+        }
+
+        if (request.getWallpaper() != null)   setting.setWallpaper(request.getWallpaper());
+        if (request.getThemeColor() != null) setting.setThemeColor(request.getThemeColor());
+        if (request.getDefaultReaction() != null) {
+            DefaultReaction defaultReaction = DefaultReaction.valueOf(request.getDefaultReaction());
+            setting.setDefaultReaction(defaultReaction);
+        }
+
+        conversation.setConversationSetting(setting);
+        conversationRepository.save(conversation);
+
+
+        return ResponseEntity.ok(CommonResponse.success("Conversation setting updated", conversation));
+
     }
 }

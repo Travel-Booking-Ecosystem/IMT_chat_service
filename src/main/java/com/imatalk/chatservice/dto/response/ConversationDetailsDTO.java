@@ -8,23 +8,48 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 // this object contains the list of members and the list of messages of the conversation
 @Data
-public class ConversationChatHistoryDTO {
+public class ConversationDetailsDTO {
     private String conversationId;
     private String conversationName;
     private String conversationAvatar;
+    private ConversationSettingDTO conversationSetting;
+    private boolean isGroupConversation;
+
     private Map<String, MemberDTO> memberMap; // map of members for fast retrieval, key is the member id, value is the member
     // using map for easier access for the frontend
-    private Map<String, MessageDTO> messageMap; // map of messages for fast retrieval, key is the message id, value is the message
+//    private Map<String, MessageDTO> messageMap; // map of messages for fast retrieval, key is the message id, value is the message
     private List<MessageDTO> messageList; // list of messages in the conversation
+    @Data
+    public static class ConversationSettingDTO {
+        private String themeColor;
+        private String wallpaper;
+        private String defaultReaction;
+
+        public ConversationSettingDTO(Conversation.ConversationSetting conversationSetting) {
+            String defaultThemColor = "COLOR-1";
+            String defaultWallpaper = "NO-WALLPAPER";
+            String defaultEmoji = "LIKE";
+
+            if (conversationSetting != null) {
+                this.themeColor = conversationSetting.getThemeColor() != null ? conversationSetting.getThemeColor() : defaultThemColor;
+                this.wallpaper = conversationSetting.getWallpaper() != null ? conversationSetting.getWallpaper() : defaultWallpaper;
+                this.defaultReaction = conversationSetting.getDefaultReaction() != null ? conversationSetting.getDefaultReaction().toString() : defaultEmoji;
+            } else {
+                this.themeColor = defaultThemColor;
+                this.wallpaper = defaultWallpaper;
+                this.defaultReaction = defaultEmoji;
+            }
+        }
+    }
+
 
     //TODO: move this data to service layer
-    public ConversationChatHistoryDTO(Conversation conversation, ChatUser currentUser, List<Message> messages) {
+    public ConversationDetailsDTO(Conversation conversation, ChatUser currentUser, List<Message> messages) {
         this.conversationId = conversation.getId();
 
         if (conversation.isGroupConversation()) {
@@ -36,10 +61,12 @@ public class ConversationChatHistoryDTO {
             this.conversationName = otherUser.getDisplayName();
             this.conversationAvatar = otherUser.getAvatar();
         }
+        this.isGroupConversation = conversation.isGroupConversation();
 
+        // the memberMap needs to be constructed before the messageList because the messageList may use the memberMap
         this.memberMap = convertMemberListToMap(conversation);
-        this.messageMap = convertMessageListToMap(messages);
-        this.messageList = List.copyOf(messageMap.values());
+        this.messageList = convertMessageListToMap(messages);
+        this.conversationSetting = new ConversationSettingDTO(conversation.getConversationSetting());
 
     }
     private Map<String, MemberDTO> convertMemberListToMap(Conversation conversation) {
@@ -55,13 +82,40 @@ public class ConversationChatHistoryDTO {
         return map;
     }
 
-    private Map<String, MessageDTO> convertMessageListToMap(List<Message> messages) {
-        Map<String, MessageDTO> map = new LinkedHashMap<>(); // using LinkedHashMap to preserve the order of insertion (the order of messages)
-        for (Message message : messages) {
-            MessageDTO dto = new MessageDTO(message);
-            map.put(dto.getId(), dto);
+    private List<MessageDTO> convertMessageListToMap(List<Message> messages) {
+        List<MessageDTO> messageDTOList = new java.util.ArrayList<>();
+
+        for(int i = 0; i < messages.size(); i++) {
+            Message message = messages.get(i);
+            MessageDTO messageDTO = new MessageDTO(message);
+
+            // if the message is a reply to another message, then add the replied message info
+            if (message.getRepliedMessageId() != null) {
+                RepliedMessage repliedMessage = findRepliedMessageInfo(message.getRepliedMessageId(), messages);
+                messageDTO.setRepliedMessage(repliedMessage);
+            }
+            messageDTOList.add(messageDTO);
         }
-        return map;
+
+        return messageDTOList;
+    }
+
+    private RepliedMessage findRepliedMessageInfo(String repliedMessageId, List<Message> messages) {
+        Message message = messages.stream().filter(m -> m.getId().equals(repliedMessageId)).findFirst().orElse(null);
+
+        if (message == null) {
+            return null;
+        }
+
+        RepliedMessage repliedMessage = new RepliedMessage();
+        repliedMessage.setId(message.getId());
+        repliedMessage.setMessageContent(message.getContent());
+
+        MemberDTO sender = this.memberMap.get(message.getSenderId());
+        repliedMessage.setSenderName(sender.getDisplayName());
+
+        return repliedMessage;
+
     }
 
     public  ChatUser getTheOtherUserInConversation(ChatUser user, Conversation conversation) {
@@ -109,22 +163,30 @@ public class ConversationChatHistoryDTO {
         private String id;
         private String senderId;
         private String content;
-//        private String type;
+        private String messageType;
         private String conversationId;
         private String createdAt;
         private long messageNo;
 
-        private String repliedMessageId; // this is the id of the message that this message is replying to
+        private RepliedMessage repliedMessage; // this is the id of the message that this message is replying to
 
         public MessageDTO(Message message) {
             this.id = message.getId();
             this.senderId = message.getSenderId();
             this.content = message.getContent();
             this.conversationId = message.getConversationId();
+            this.messageType = message.getMessageType();
             this.createdAt = message.getCreatedAt().toString();
             this.messageNo = message.getMessageNo();
-            this.repliedMessageId = message.getRepliedMessageId();
         }
+    }
+
+    @Data
+    public static class RepliedMessage {
+        private String id;
+        private String messageContent;
+        private String senderName;
+
     }
 
 

@@ -25,8 +25,19 @@ public class NewMessageEvent {
         private String content;
         private String createdAt;
         private String conversationId;
+        private String messageType;
         private long messageNo;
-        private String repliedMessageId; // this is the id of the message that this message is replying to
+        private RepliedMessage repliedMessage; // this is the id of the message that this message is replying to
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class RepliedMessage {
+        private String id;
+        private String messageContent;
+        private String senderName;
+
+    }
 }
