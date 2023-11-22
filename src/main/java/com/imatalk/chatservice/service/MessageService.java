@@ -53,22 +53,22 @@ public class MessageService {
         return messageRepo.findAllById(messageIds);
     }
 
-    public Map<String, Object> reactMessage(Message message, ReactMessageRequest request) {
+    public Map<String, Object> reactMessage(Message message, ReactMessageRequest request, ChatUser currentUser) {
         boolean isUnreact = false;
         Map<String, Message.Reactor> reactionTracker = message.getReactionTracker();
         if (reactionTracker == null) {
             reactionTracker = new HashMap<>();
         }
 
-        if (reactionTracker.containsKey(request.getReactorId())) {
-            if (reactionTracker.get(request.getReactorId()).getReaction() == request.getReaction()) {
+        if (reactionTracker.containsKey(currentUser.getId())) {
+            if (reactionTracker.get(currentUser.getId()).getReaction() == request.getReaction()) {
                 // remove the reaction
-                reactionTracker.remove(request.getReactorId());
+                reactionTracker.remove(currentUser.getId());
                 isUnreact = true;
             } else {
                 // update the reaction
-                reactionTracker.get(request.getReactorId()).setReaction(request.getReaction());
-                reactionTracker.get(request.getReactorId()).setReactedAt(LocalDateTime.now());
+                reactionTracker.get(currentUser.getId()).setReaction(request.getReaction());
+                reactionTracker.get(currentUser.getId()).setReactedAt(LocalDateTime.now());
             }
         } else {
             // add the new reaction
@@ -76,7 +76,7 @@ public class MessageService {
                     .reaction(request.getReaction())
                     .reactedAt(LocalDateTime.now())
                     .build();
-            reactionTracker.put(request.getReactorId(), reactor);
+            reactionTracker.put(currentUser.getId(), reactor);
         }
 
         message.setReactionTracker(reactionTracker);

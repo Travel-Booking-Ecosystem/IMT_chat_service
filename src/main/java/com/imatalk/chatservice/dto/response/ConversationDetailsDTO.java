@@ -31,7 +31,7 @@ public class ConversationDetailsDTO {
         private String defaultReaction;
 
         public ConversationSettingDTO(Conversation.ConversationSetting conversationSetting) {
-            String defaultThemColor = "COLOR-1";
+            String defaultThemColor = "CHAT-COLOR-1";
             String defaultWallpaper = "NO-WALLPAPER";
             String defaultEmoji = "LIKE";
 
@@ -94,6 +94,7 @@ public class ConversationDetailsDTO {
                 RepliedMessage repliedMessage = findRepliedMessageInfo(message.getRepliedMessageId(), messages);
                 messageDTO.setRepliedMessage(repliedMessage);
             }
+
             messageDTOList.add(messageDTO);
         }
 
@@ -167,6 +168,7 @@ public class ConversationDetailsDTO {
         private String conversationId;
         private String createdAt;
         private long messageNo;
+        private Map<String, Message.Reactor> reactionTracker; // list of user ids who reacted to this message
 
         private RepliedMessage repliedMessage; // this is the id of the message that this message is replying to
 
@@ -178,6 +180,7 @@ public class ConversationDetailsDTO {
             this.messageType = message.getMessageType();
             this.createdAt = message.getCreatedAt().toString();
             this.messageNo = message.getMessageNo();
+            this.reactionTracker = message.getReactionTracker();
         }
     }
 

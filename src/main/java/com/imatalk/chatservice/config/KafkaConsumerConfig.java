@@ -52,7 +52,8 @@ public class KafkaConsumerConfig {
     private void addTypeMapping(Map<String, Object> props) {
         Class[] subscribedEventClasses = {
                 FriendRequestAcceptedEvent.class,
-                NewRegisteredUserEvent.class
+                NewRegisteredUserEvent.class,
+                UserProfileUpdatedEvent.class
         };
 
         String typeMapping = "";

@@ -7,6 +7,5 @@ import lombok.Data;
 public class ReactMessageRequest {
     private String conversationId;
     private String messageId;
-    private String reactorId;
     private MessageReaction reaction;
 }

@@ -77,7 +77,7 @@ public class ChatController {
     @GetMapping("/conversation-chat-history")
     public ResponseEntity<CommonResponse> getChatHistory(@RequestHeader String currentUserId, @RequestParam String conversationId,
                                                          @RequestParam(defaultValue = "-1") int messageNo) {
-        return chatService.getConversationChatHistory(currentUserId, conversationId, messageNo);
+        return chatService.getConversationDetails(currentUserId, conversationId, messageNo);
     }
 
 //    @MessageMapping("/message")

@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +36,7 @@ public class Message {
     private MessageType messageType;
     private Map<String, Reactor> reactionTracker; // list of user ids who reacted to this message
     //TODO: should there be a system message when a user joins a conversation, leaves a conversation, or is added to a conversation, reacts to a message, etc.?
-
+    
     @Data
     @Builder
     @AllArgsConstructor
