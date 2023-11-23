@@ -102,6 +102,7 @@ public class KafkaProducerService {
     }
 
     public void sendReactionMessageEvent(Message message, ConversationInfoDTO conversation, ChatUser reactor, List<String> memberIds, boolean isUnreact) {
+
         NewMessageReactionEvent.Conversation conversationDTO = NewMessageReactionEvent.Conversation.builder()
                 .conversationId(message.getConversationId())
                 .conversationName(conversation.getName())
@@ -126,7 +127,7 @@ public class KafkaProducerService {
                 .conversationMemberIds(memberIds)
                 .messageReaction(messageReactionResponse)
                 .build();
-
+        System.out.println("reaction: " + newMessageReactionEvent);
         kafkaTemplate.send(NEW_MESSAGE_REACTION_TOPIC, newMessageReactionEvent);
     }
 
